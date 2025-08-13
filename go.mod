@@ -5,6 +5,7 @@ go 1.24
 require (
 	github.com/MrAndreID/gomiddleware v1.3.5
 	github.com/MrAndreID/gopackage v1.0.1
+	github.com/bradfitz/gomemcache v0.0.0-20250403215159-8d39553ac7cf
 	github.com/caarlos0/env/v11 v11.3.1
 	github.com/common-nighthawk/go-figure v0.0.0-20210622060536-734e95fb86be
 	github.com/go-ozzo/ozzo-validation/v4 v4.3.0
@@ -13,7 +14,7 @@ require (
 	github.com/labstack/echo/v4 v4.13.4
 	github.com/labstack/gommon v0.4.2
 	github.com/lestrrat-go/file-rotatelogs v2.4.0+incompatible
-	github.com/redis/go-redis/v9 v9.12.0
+	github.com/redis/go-redis/v9 v9.12.1
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cast v1.9.2
 	github.com/stretchr/testify v1.10.0

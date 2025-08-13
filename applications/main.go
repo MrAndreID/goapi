@@ -16,7 +16,6 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/labstack/gommon/log"
-	"github.com/redis/go-redis/v9"
 	"github.com/sirupsen/logrus"
 	"github.com/unrolled/secure"
 	"go.elastic.co/apm/module/apmechov4"
@@ -27,7 +26,7 @@ type Application struct {
 	Config       *configs.Config
 	TimeLocation *time.Location
 	Database     *gorm.DB
-	Cache        *redis.Client
+	Cache        *caches.CacheConnection
 }
 
 func Start(toggle bool) any {
@@ -81,7 +80,7 @@ func Start(toggle bool) any {
 		}
 	}
 
-	var cacheConnection *redis.Client
+	var cacheConnection *caches.CacheConnection
 
 	if cfg.UseCache {
 		cacheConnection, err = caches.New(&caches.Cache{
