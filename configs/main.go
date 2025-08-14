@@ -33,6 +33,14 @@ type Config struct {
 	CacheUsername   string `env:"CACHE_USERNAME"`
 	CachePassword   string `env:"CACHE_PASSWORD"`
 
+	UseObjectStorage        bool   `env:"USE_OBJECT_STORAGE" envDefault:"false"`
+	ObjectStorageConnection string `env:"OBJECT_STORAGE_CONNECTION"`
+	ObjectStorageHost       string `env:"OBJECT_STORAGE_HOST"`
+	ObjectStoragePort       string `env:"OBJECT_STORAGE_PORT"`
+	ObjectStorageUsername   string `env:"OBJECT_STORAGE_USERNAME"`
+	ObjectStoragePassword   string `env:"OBJECT_STORAGE_PASSWORD"`
+	ObjectStorageSSL        bool   `env:"OBJECT_STORAGE_SSL"`
+
 	AllowedOrigins []string `env:"ALLOWED_ORIGINS" envSeparator:","`
 }
 

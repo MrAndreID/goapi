@@ -10,6 +10,7 @@ import (
 	"github.com/MrAndreID/goapi/configs"
 	"github.com/MrAndreID/goapi/databases"
 	"github.com/MrAndreID/goapi/internal/handlers"
+	"github.com/MrAndreID/goapi/objectstorages"
 
 	"github.com/MrAndreID/gomiddleware"
 	"github.com/MrAndreID/gopackage"
@@ -23,10 +24,11 @@ import (
 )
 
 type Application struct {
-	Config       *configs.Config
-	TimeLocation *time.Location
-	Database     *gorm.DB
-	Cache        *caches.CacheConnection
+	Config        *configs.Config
+	TimeLocation  *time.Location
+	Database      *gorm.DB
+	Cache         *caches.CacheConnection
+	ObjectStorage *objectstorages.ObjectStorageConnection
 }
 
 func Start(toggle bool) any {
@@ -101,16 +103,39 @@ func Start(toggle bool) any {
 		}
 	}
 
+	var objectStorageConnection *objectstorages.ObjectStorageConnection
+
+	if cfg.UseObjectStorage {
+		objectStorageConnection, err = objectstorages.New(&objectstorages.ObjectStorage{
+			Connection: cfg.ObjectStorageConnection,
+			Host:       cfg.ObjectStorageHost,
+			Port:       cfg.ObjectStoragePort,
+			Username:   cfg.ObjectStorageUsername,
+			Password:   cfg.ObjectStoragePassword,
+			SSL:        cfg.ObjectStorageSSL,
+		})
+
+		if err != nil {
+			logrus.WithFields(logrus.Fields{
+				"tag":   tag + "05",
+				"error": err.Error(),
+			}).Error("failed to connect object storage")
+
+			return nil
+		}
+	}
+
 	app := Application{
-		Config:       cfg,
-		TimeLocation: timeLocation,
-		Database:     databaseConnection,
-		Cache:        cacheConnection,
+		Config:        cfg,
+		TimeLocation:  timeLocation,
+		Database:      databaseConnection,
+		Cache:         cacheConnection,
+		ObjectStorage: objectStorageConnection,
 	}
 
 	echo.NotFoundHandler = func(c echo.Context) error {
 		logrus.WithFields(logrus.Fields{
-			"tag": tag + "01",
+			"tag": tag + "06",
 		}).Error("route not found")
 
 		return c.JSON(http.StatusNotFound, map[string]string{
@@ -121,7 +146,7 @@ func Start(toggle bool) any {
 
 	echo.MethodNotAllowedHandler = func(c echo.Context) error {
 		logrus.WithFields(logrus.Fields{
-			"tag": tag + "02",
+			"tag": tag + "07",
 		}).Error("method not allowed")
 
 		return c.JSON(http.StatusMethodNotAllowed, map[string]string{
