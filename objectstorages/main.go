@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/MrAndreID/gopackage"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/sirupsen/logrus"
@@ -19,7 +20,8 @@ type ObjectStorage struct {
 }
 
 type ObjectStorageConnection struct {
-	Minio *minio.Client
+	Minio     *minio.Client
+	SeaweedFS *gopackage.SeaweedFSData
 }
 
 func New(objectStorage *ObjectStorage) (*ObjectStorageConnection, error) {
@@ -31,6 +33,8 @@ func New(objectStorage *ObjectStorage) (*ObjectStorageConnection, error) {
 	switch objectStorage.Connection {
 	case "minio":
 		objectStorageData, err = objectStorage.Minio()
+	case "seaweedfs":
+		objectStorageData, err = objectStorage.SeaweedFS()
 	default:
 		err = errors.New("Object Storage Connection Not Found")
 	}
@@ -79,5 +83,24 @@ func (objectStorage *ObjectStorage) Minio() (*ObjectStorageConnection, error) {
 
 	return &ObjectStorageConnection{
 		Minio: minioClient,
+	}, nil
+}
+
+func (objectStorage *ObjectStorage) SeaweedFS() (*ObjectStorageConnection, error) {
+	var tag string = "Object-Storages.Main.SeaweedFS."
+
+	seaweedFSClient, err := gopackage.NewSeaweedFS(objectStorage.Host, objectStorage.Port, objectStorage.SSL)
+
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"tag":   tag + "01",
+			"error": err.Error(),
+		}).Error("failed to connect seaweedfs")
+
+		return nil, err
+	}
+
+	return &ObjectStorageConnection{
+		SeaweedFS: seaweedFSClient,
 	}, nil
 }
