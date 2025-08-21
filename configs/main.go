@@ -14,6 +14,8 @@ type Config struct {
 	AppVersion  string `env:"APP_VERSION" envDefault:"v1.0.0"`
 	AppKey      string `env:"APP_KEY"`
 
+	UseBodyDumpLog bool `env:"USE_BODY_DUMP_LOG" envDefault:"false"`
+
 	UseDatabase        bool   `env:"USE_DATABASE" envDefault:"false"`
 	DatabaseConnection string `env:"DATABASE_CONNECTION"`
 	DatabaseHost       string `env:"DATABASE_HOST"`
@@ -70,13 +72,15 @@ func New(toggle bool) (*Config, error) {
 		return &cfg, err
 	}
 
-	if err := NewBodyDumpLog(); err != nil {
-		logrus.WithFields(logrus.Fields{
-			"tag":   tag + "03",
-			"error": err.Error(),
-		}).Error("failed to initiate a body dump for log")
+	if cfg.UseBodyDumpLog {
+		if err := NewBodyDumpLog(); err != nil {
+			logrus.WithFields(logrus.Fields{
+				"tag":   tag + "03",
+				"error": err.Error(),
+			}).Error("failed to initiate a body dump for log")
 
-		return &cfg, err
+			return &cfg, err
+		}
 	}
 
 	LoadVersion(&cfg, toggle)
