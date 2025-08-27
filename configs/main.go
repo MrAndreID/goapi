@@ -43,6 +43,15 @@ type Config struct {
 	ObjectStoragePassword   string `env:"OBJECT_STORAGE_PASSWORD"`
 	ObjectStorageSSL        bool   `env:"OBJECT_STORAGE_SSL"`
 
+	UseMessageBroker        bool   `env:"USE_MESSAGE_BROKER" envDefault:"false"`
+	MessageBrokerConnection string `env:"MESSAGE_BROKER_CONNECTION"`
+	MessageBrokerHost       string `env:"MESSAGE_BROKER_HOST"`
+	MessageBrokerPort       string `env:"MESSAGE_BROKER_PORT"`
+	MessageBrokerUsername   string `env:"MESSAGE_BROKER_USERNAME"`
+	MessageBrokerPassword   string `env:"MESSAGE_BROKER_PASSWORD"`
+	MessageBrokerName       string `env:"MESSAGE_BROKER_NAME"`
+	MessageBrokerPartition  int    `env:"MESSAGE_BROKER_PARTITION"`
+
 	AllowedOrigins []string `env:"ALLOWED_ORIGINS" envSeparator:","`
 }
 

@@ -10,6 +10,7 @@ import (
 	"github.com/MrAndreID/goapi/configs"
 	"github.com/MrAndreID/goapi/databases"
 	"github.com/MrAndreID/goapi/internal/handlers"
+	"github.com/MrAndreID/goapi/messagebrokers"
 	"github.com/MrAndreID/goapi/objectstorages"
 
 	"github.com/MrAndreID/gomiddleware"
@@ -29,6 +30,7 @@ type Application struct {
 	Database      *gorm.DB
 	Cache         *caches.CacheConnection
 	ObjectStorage *objectstorages.ObjectStorageConnection
+	MessageBroker *messagebrokers.MessageBrokerConnection
 }
 
 func Start(toggle bool) any {
@@ -125,17 +127,43 @@ func Start(toggle bool) any {
 		}
 	}
 
+	var messageBrokerConnection *messagebrokers.MessageBrokerConnection
+
+	if cfg.UseMessageBroker {
+		messageBrokerConnection, err = messagebrokers.New(&messagebrokers.MessageBroker{
+			Connection: cfg.MessageBrokerConnection,
+			Host:       cfg.MessageBrokerHost,
+			Port:       cfg.MessageBrokerPort,
+			Username:   cfg.MessageBrokerUsername,
+			Password:   cfg.MessageBrokerPassword,
+			Name:       cfg.MessageBrokerName,
+			Partition:  cfg.MessageBrokerPartition,
+		})
+
+		if err != nil {
+			logrus.WithFields(logrus.Fields{
+				"tag":   tag + "06",
+				"error": err.Error(),
+			}).Error("failed to connect message broker")
+
+			return nil
+		}
+	}
+
+	defer messageBrokerConnection.Close()
+
 	app := Application{
 		Config:        cfg,
 		TimeLocation:  timeLocation,
 		Database:      databaseConnection,
 		Cache:         cacheConnection,
 		ObjectStorage: objectStorageConnection,
+		MessageBroker: messageBrokerConnection,
 	}
 
 	echo.NotFoundHandler = func(c echo.Context) error {
 		logrus.WithFields(logrus.Fields{
-			"tag": tag + "06",
+			"tag": tag + "07",
 		}).Error("route not found")
 
 		return c.JSON(http.StatusNotFound, map[string]string{
@@ -146,7 +174,7 @@ func Start(toggle bool) any {
 
 	echo.MethodNotAllowedHandler = func(c echo.Context) error {
 		logrus.WithFields(logrus.Fields{
-			"tag": tag + "07",
+			"tag": tag + "08",
 		}).Error("method not allowed")
 
 		return c.JSON(http.StatusMethodNotAllowed, map[string]string{

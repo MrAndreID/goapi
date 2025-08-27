@@ -81,13 +81,16 @@ To use The `MrAndreID/GoAPI`, you must ensure that you meet the following requir
 | Name                    | Description                                               |
 | :---------------------- | :-------------------------------------------------------- |
 | `application`           | Initialization of Echo Framework, Middleware, and Routes. |
-| `caches`                | Configuration for Cache |
-| `configs`               | Condiguration from Env File |
-| `databases`             | Configuration for Database |
-| `internal/handlers`     | HTTP Handlers |
-| `internal/services`     | Main Business Logic |
-| `internal/repositories` | Connector to Database or API External |
-| `internal/types `       | Struct Data |
+| `caches`                | Configuration for Cache                                   |
+| `configs`               | Condiguration from Env File                               |
+| `databases`             | Configuration for Database                                |
+| `internal/handlers`     | HTTP Handlers                                             |
+| `internal/services`     | Main Business Logic                                       |
+| `internal/repositories` | Connector to Database or API External                     |
+| `internal/types`        | Struct Data                                               |
+| `messagebrokers`        | Configuration for Message Broker                          |
+| `objectstorages`        | Configuration for Object Storage                          |
+| `tests`                 | Unit Test                                                 |
 - Run The `MrAndreID/GoAPI`
 ```go
 # go run main.go
@@ -99,7 +102,7 @@ To use The `MrAndreID/GoAPI`, you must ensure that you meet the following requir
 ```
 - Set The `MrAndreID/GoAPI` to Maintenance Mode in Storages Folder
 ```sh
-# touch maintenance.flag
+# touch storages/maintenance.flag
 ```
 
 ## Versioning
