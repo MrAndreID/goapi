@@ -1,7 +1,7 @@
 package types
 
 type PaginatorResponse struct {
-	Data     any   `json:"data"`
+	Records  any   `json:"records"`
 	Total    int64 `json:"total"`
 	NextPage bool  `json:"nextPage"`
 }

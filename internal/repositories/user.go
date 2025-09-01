@@ -202,7 +202,7 @@ func (r *UserRepository) Read(ctx context.Context, req ReadUserData) (types.Pagi
 
 	queryBuilder.Find(&users)
 
-	res.Data = users
+	res.Records = users
 
 	if !req.DisableCalculateTotal {
 		countTotal.Count(&total)
