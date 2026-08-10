@@ -159,7 +159,7 @@ func (r *Repository) Read(ctx context.Context, req ReadData) (entity.PaginatorRe
 		res                   entity.PaginatorResponse
 	)
 
-	if req.Page == "" {
+	if req.Page != "" {
 		page, err = strconv.Atoi(req.Page)
 
 		if err != nil {
@@ -172,7 +172,7 @@ func (r *Repository) Read(ctx context.Context, req ReadData) (entity.PaginatorRe
 		}
 	}
 
-	if req.Limit == "" {
+	if req.Limit != "" {
 		limit, err = strconv.Atoi(req.Limit)
 
 		if err != nil {
@@ -185,7 +185,7 @@ func (r *Repository) Read(ctx context.Context, req ReadData) (entity.PaginatorRe
 		}
 	}
 
-	if req.DisableCalculateTotal == "" {
+	if req.DisableCalculateTotal != "" {
 		disableCalculateTotal, err = strconv.ParseBool(req.DisableCalculateTotal)
 
 		if err != nil {

@@ -41,6 +41,14 @@ LICENSE
 # Tests are not needed to compile the binary
 **/*_test.go
 
-# NOTE: .env and .env.test are deliberately NOT ignored. They stay available so
-# `--build-arg ENV_FILE=.env` works. The builder stage copies only cmd/ and
-# internal/, so env files are read solely by the runtime stage.
+# Standalone CLI commands. The image builds only ./cmd/api, and these are
+# separate `package main` programs that nothing under cmd/ imports, so they are
+# kept out of the build context entirely.
+internal/application/database/migration
+internal/application/database/seeder
+
+# Real environment files. Only .env.example is needed, and the runtime stage
+# bakes it as /app/.env. Mount the real file at runtime
+# (-v /path/to/.env:/app/.env:ro) so secrets never reach the Docker daemon.
+.env
+.env.test

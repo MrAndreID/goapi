@@ -21,7 +21,7 @@ The `MrAndreID/GoAPI` is a skeleton uses the Go Programming Language (GoLang) wi
 ## Requirements
 
 To use The `MrAndreID/GoAPI`, you must ensure that you meet the following requirements:
-- [Go](https://golang.org/) >= 1.24
+- [Go](https://golang.org/) >= 1.26
 
 ## Installation
 
@@ -44,65 +44,76 @@ To use The `MrAndreID/GoAPI`, you must follow the steps below:
 ## Migration
 
 To Run Migration for The `MrAndreID/GoAPI`, you must ensure that you meet the following requirements:
+- Set `USE_DATABASE=true` and Configuring The `DATABASE_*` Value in .env file
 - Run Migration for The `MrAndreID/GoAPI`
 ```go
-# go run databases/migrations/main.go --migrate=default
+# go run ./internal/application/database/migration --migrate=default
 ```
 - Run Migration for The `MrAndreID/GoAPI` with Drop All Tables
 ```go
-# go run databases/migrations/main.go --migrate=fresh
+# go run ./internal/application/database/migration --migrate=fresh
 ```
 
 ## Seeder
 
 To Run Seeder for The `MrAndreID/GoAPI`, you must ensure that you meet the following requirements:
+- Run Migration for The `MrAndreID/GoAPI` Before Run Seeder
 - Run Seeder for The `MrAndreID/GoAPI`
 ```go
-# go run databases/seeders/main.go --seed=default
+# go run ./internal/application/database/seeder --seed=default
 ```
 
 ## Unit Test
 
 To Run Unit Test for The `MrAndreID/GoAPI`, you must ensure that you meet the following requirements:
-- Create .env file in tests folder from .env.example (Linux)
+- Create .env.test file from .env.test.example (Linux)
 ```sh
-# cp .env.example tests/.env
+# cp .env.test.example .env.test
 ```
-- Configuring .env file
+- Configuring .env.test file
+- Prepare a PostgreSQL Server for The Repository Unit Test
 - Run Unit Test for The `MrAndreID/GoAPI`
 ```go
-# go test -v -cover -coverpkg=./internal/handlers ./tests
+# go test -v -cover ./...
+```
+- Run Unit Test for The `MrAndreID/GoAPI` with Coverage Profile
+```go
+# go test -v -cover -coverprofile=coverage.out ./...
+# go tool cover -func=coverage.out
 ```
 
 ## Usage
 
 To use The `MrAndreID/GoAPI`, you must ensure that you meet the following requirements:
 - Directory Structure The `MrAndreID/GoAPI`
-| Name                    | Description                                               |
-| :---------------------- | :-------------------------------------------------------- |
-| `application`           | Initialization of Echo Framework, Middleware, and Routes. |
-| `caches`                | Configuration for Cache                                   |
-| `configs`               | Condiguration from Env File                               |
-| `databases`             | Configuration for Database                                |
-| `internal/handlers`     | HTTP Handlers                                             |
-| `internal/services`     | Main Business Logic                                       |
-| `internal/repositories` | Connector to Database or API External                     |
-| `internal/types`        | Struct Data                                               |
-| `messagebrokers`        | Configuration for Message Broker                          |
-| `objectstorages`        | Configuration for Object Storage                          |
-| `tests`                 | Unit Test                                                 |
+
+| Name                                       | Description                                               |
+| :----------------------------------------- | :-------------------------------------------------------- |
+| `cmd/api`                                  | Entry Point for The Application                           |
+| `internal/application`                     | Initialization of Echo Framework, Middleware, and Routes. |
+| `internal/application/cache`               | Configuration for Cache                                   |
+| `internal/application/config`              | Configuration from Env File                               |
+| `internal/application/database`            | Configuration for Database                                |
+| `internal/application/database/migration`  | Migration Command                                         |
+| `internal/application/database/seeder`     | Seeder Command                                            |
+| `internal/application/message_broker`      | Configuration for Message Broker                          |
+| `internal/application/object_storage`      | Configuration for Object Storage                          |
+| `internal/entity`                          | Shared Struct Data                                        |
+| `internal/feature/v1/user`                 | User Feature and Unit Test                                |
+| `storage`                                  | Log File and Maintenance Flag File                         |
+
 - Run The `MrAndreID/GoAPI`
 ```go
-# go run main.go
+# go run ./cmd/api
 ```
 - Run The `MrAndreID/GoAPI` with Docker
 ```docker
 # docker build --no-cache -t goapi:1.0.0 .
-# docker run --name goapi --restart=always -d -p -v /path/to/folder:/app/storages -v /path/to/folder:/app/tests/storages 10001:10001 goapi:1.0.0
+# docker run --name goapi --restart=always -d -p 10001:10001 -v /path/to/.env:/app/.env:ro -v /path/to/folder:/app/storage goapi:1.0.0
 ```
-- Set The `MrAndreID/GoAPI` to Maintenance Mode in Storages Folder
+- Set The `MrAndreID/GoAPI` to Maintenance Mode in Storage Folder
 ```sh
-# touch storages/maintenance.flag
+# touch storage/maintenance.flag
 ```
 
 ## Versioning
