@@ -1,0 +1,106 @@
+package objectstorage
+
+import (
+	"context"
+	"errors"
+
+	"github.com/MrAndreID/gopackage/v2"
+	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
+	"github.com/sirupsen/logrus"
+)
+
+type ObjectStorage struct {
+	Connection string
+	Host       string
+	Port       string
+	Username   string
+	Password   string
+	SSL        bool
+}
+
+type ObjectStorageConnection struct {
+	Minio     *minio.Client
+	SeaweedFS *gopackage.SeaweedFSData
+}
+
+func New(objectStorage *ObjectStorage) (*ObjectStorageConnection, error) {
+	var (
+		objectStorageData *ObjectStorageConnection
+		err               error
+	)
+
+	switch objectStorage.Connection {
+	case "minio":
+		objectStorageData, err = objectStorage.Minio()
+	case "seaweedfs":
+		objectStorageData, err = objectStorage.SeaweedFS()
+	default:
+		err = errors.New("Object Storage Connection Not Found")
+	}
+
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"tag":   "internal.application.objectstorage.main.New.01",
+			"error": err.Error(),
+		}).Error("failed to connect object storage")
+
+		return nil, err
+	}
+
+	return objectStorageData, nil
+}
+
+func (objectStorage *ObjectStorage) Minio() (*ObjectStorageConnection, error) {
+	var (
+		tag       string = "internal.application.objectstorage.main.Minio."
+		keyBucket string = "ping"
+	)
+
+	minioClient, err := minio.New(objectStorage.Host+":"+objectStorage.Port, &minio.Options{
+		Creds:  credentials.NewStaticV4(objectStorage.Username, objectStorage.Password, ""),
+		Secure: objectStorage.SSL,
+	})
+
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"tag":   tag + "01",
+			"error": err.Error(),
+		}).Error("failed to connect minio")
+
+		return nil, err
+	}
+
+	_, err = minioClient.BucketExists(context.Background(), keyBucket)
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"tag":   tag + "02",
+			"error": err.Error(),
+		}).Error("failed to connect minio")
+
+		return nil, err
+	}
+
+	return &ObjectStorageConnection{
+		Minio: minioClient,
+	}, nil
+}
+
+func (objectStorage *ObjectStorage) SeaweedFS() (*ObjectStorageConnection, error) {
+	var tag string = "internal.application.objectstorage.main.SeaweedFS."
+
+	seaweedFSClient, err := gopackage.NewSeaweedFS(objectStorage.Host, objectStorage.Port, objectStorage.SSL)
+
+	if err != nil {
+		logrus.WithFields(logrus.Fields{
+			"tag":   tag + "01",
+			"error": err.Error(),
+		}).Error("failed to connect seaweedfs")
+
+		return nil, err
+	}
+
+	return &ObjectStorageConnection{
+		SeaweedFS: seaweedFSClient,
+	}, nil
+}
