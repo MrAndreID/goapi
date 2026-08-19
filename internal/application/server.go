@@ -63,7 +63,11 @@ func newServer(cfg *config.Config) *echo.Echo {
 		STSIncludeSubdomains: true,
 		STSPreload:           true,
 		ForceSTSHeader:       true,
-		IsDevelopment:        true,
+		IsDevelopment:        false,
+	}
+
+	if cfg.AppDebug {
+		secureMiddleware.IsDevelopment = true
 	}
 
 	e.Use(echo.WrapMiddleware(secure.New(secureMiddleware).Handler))
