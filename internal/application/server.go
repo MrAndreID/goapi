@@ -4,9 +4,9 @@ import (
 	"net/http"
 
 	"github.com/MrAndreID/goapi/v2/internal/application/config"
+
 	"github.com/MrAndreID/gomiddleware/v2"
 	"github.com/MrAndreID/gopackage/v2"
-
 	"github.com/labstack/echo/v5"
 	"github.com/labstack/echo/v5/middleware"
 	"github.com/sirupsen/logrus"
@@ -81,7 +81,6 @@ func newServer(cfg *config.Config) *echo.Echo {
 
 	e.Use(gomiddleware.EchoSetNoCache)
 	e.Use(gomiddleware.EchoSetMaintenanceMode("storage/maintenance.flag"))
-	e.Use(gomiddleware.EchoCheckApplicationKey(cfg.AppKey))
 
 	return e
 }

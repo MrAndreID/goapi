@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	"github.com/MrAndreID/goapi/v2/internal/entity"
-	"github.com/MrAndreID/gopackage/v2"
 
+	"github.com/MrAndreID/gopackage/v2"
 	"github.com/labstack/echo/v5"
 	"github.com/sirupsen/logrus"
 )

@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/MrAndreID/goapi/v2/internal/entity"
+
 	"github.com/google/uuid"
 )
 
