@@ -10,7 +10,6 @@ import (
 	"github.com/labstack/echo/v5"
 	"github.com/labstack/echo/v5/middleware"
 	"github.com/sirupsen/logrus"
-	"github.com/unrolled/secure"
 )
 
 func newServer(cfg *config.Config) *echo.Echo {
@@ -49,28 +48,22 @@ func newServer(cfg *config.Config) *echo.Echo {
 		}).Info("body dump")
 	}))
 
-	e.Use(middleware.SecureWithConfig(middleware.SecureConfig{
+	secureMiddleware := middleware.SecureConfig{
 		XSSProtection:         "1; mode=block",
 		ContentTypeNosniff:    "nosniff",
 		XFrameOptions:         "SAMEORIGIN",
-		HSTSMaxAge:            3600,
+		HSTSMaxAge:            63072000,
+		HSTSPreloadEnabled:    true,
 		ContentSecurityPolicy: "default-src 'self'",
-	}))
-
-	secureMiddleware := secure.Options{
-		SSLProxyHeaders:      map[string]string{"X-Forwarded-Proto": "https"},
-		STSSeconds:           63072000,
-		STSIncludeSubdomains: true,
-		STSPreload:           true,
-		ForceSTSHeader:       true,
-		IsDevelopment:        false,
+		ReferrerPolicy:        "strict-origin-when-cross-origin",
 	}
 
 	if cfg.AppDebug {
-		secureMiddleware.IsDevelopment = true
+		secureMiddleware.HSTSMaxAge = 0
+		secureMiddleware.HSTSPreloadEnabled = false
 	}
 
-	e.Use(echo.WrapMiddleware(secure.New(secureMiddleware).Handler))
+	e.Use(middleware.SecureWithConfig(secureMiddleware))
 	e.Use(middleware.RequestLogger())
 
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{

@@ -14,12 +14,11 @@ require (
 	github.com/labstack/echo/v5 v5.3.1
 	github.com/lestrrat-go/file-rotatelogs v2.4.0+incompatible
 	github.com/minio/minio-go/v7 v7.3.0
-	github.com/rabbitmq/amqp091-go v1.13.0
+	github.com/rabbitmq/amqp091-go v1.14.0
 	github.com/redis/go-redis/v9 v9.22.0
 	github.com/segmentio/kafka-go v0.4.51
-	github.com/sirupsen/logrus v1.10.0
+	github.com/sirupsen/logrus v1.10.1
 	github.com/spf13/cast v1.10.0
-	github.com/unrolled/secure v1.17.0
 	gorm.io/driver/mysql v1.6.0
 	gorm.io/driver/postgres v1.6.2
 	gorm.io/gorm v1.31.2
