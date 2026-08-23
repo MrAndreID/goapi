@@ -285,6 +285,18 @@ func useFailingUUIDSource(t *testing.T, allowed int) {
 	})
 }
 
+func readUsers(t *testing.T, response entity.PaginatorResponse) []User {
+	t.Helper()
+
+	users, ok := response.Records.([]User)
+
+	if !ok {
+		t.Fatalf("expected records to hold []User, got %#v", response.Records)
+	}
+
+	return users
+}
+
 func TestRepositoryCreateReadUpdateDelete(t *testing.T) {
 	repo, db := newPostgresRepository(t, true)
 
@@ -301,7 +313,17 @@ func TestRepositoryCreateReadUpdateDelete(t *testing.T) {
 		t.Fatalf("expected 2 emails, got %d", len(createdUser.Emails))
 	}
 
-	readResponse, err := repo.Read(context.Background(), ReadData{PaginatorRequest: entity.PaginatorRequest{Page: "1", Limit: "10", DisableCalculateTotal: "true"}})
+	for i, expected := range []string{"andre@gmail.com", "bndre@gmail.com"} {
+		if createdUser.Emails[i].Email != expected {
+			t.Fatalf("expected email %d to be %q, got %q", i, expected, createdUser.Emails[i].Email)
+		}
+
+		if createdUser.Emails[i].UserID != createdUser.ID {
+			t.Fatalf("expected email %d to belong to %q, got %q", i, createdUser.ID, createdUser.Emails[i].UserID)
+		}
+	}
+
+	readResponse, err := repo.Read(context.Background(), ReadData{PaginatorRequest: entity.PaginatorRequest{Page: "1", Limit: "10", DisableCalculateTotal: "false"}})
 	if err != nil {
 		t.Fatalf("expected read to succeed: %v", err)
 	}
@@ -310,7 +332,11 @@ func TestRepositoryCreateReadUpdateDelete(t *testing.T) {
 		t.Fatalf("expected total to be 1 for the created record, got %d", readResponse.Total)
 	}
 
-	if err := repo.Update(UpdateData{ID: createdUser.ID, Name: "Andre Updated", Emails: []string{"c@example.com"}}); err != nil {
+	if records := readUsers(t, readResponse); len(records) != 1 {
+		t.Fatalf("expected 1 record, got %d", len(records))
+	}
+
+	if err := repo.Update(UpdateData{ID: createdUser.ID, Name: "Andre Updated", Emails: []string{"cndre@gmail.com"}}); err != nil {
 		t.Fatalf("expected update to succeed: %v", err)
 	}
 
@@ -319,8 +345,28 @@ func TestRepositoryCreateReadUpdateDelete(t *testing.T) {
 		t.Fatalf("failed to read updated user: %v", err)
 	}
 
-	if readUpdated.Records == nil {
-		t.Fatalf("expected updated user records, got %#v", readUpdated.Records)
+	updatedRecords := readUsers(t, readUpdated)
+
+	if len(updatedRecords) != 1 {
+		t.Fatalf("expected 1 updated record, got %d", len(updatedRecords))
+	}
+
+	updatedUser := updatedRecords[0]
+
+	if updatedUser.ID != createdUser.ID {
+		t.Fatalf("expected the updated record to be %q, got %q", createdUser.ID, updatedUser.ID)
+	}
+
+	if updatedUser.Name != "Andre Updated" {
+		t.Fatalf("expected the name to be updated, got %q", updatedUser.Name)
+	}
+
+	if len(updatedUser.Emails) != 1 {
+		t.Fatalf("expected 1 email after the update, got %d", len(updatedUser.Emails))
+	}
+
+	if updatedUser.Emails[0].Email != "cndre@gmail.com" {
+		t.Fatalf("expected the email to be replaced, got %q", updatedUser.Emails[0].Email)
 	}
 
 	if err := repo.Delete(DeleteData{ID: createdUser.ID}); err != nil {
@@ -334,6 +380,24 @@ func TestRepositoryCreateReadUpdateDelete(t *testing.T) {
 
 	if userCount != 0 {
 		t.Fatalf("expected user to be deleted, got %d users remaining", userCount)
+	}
+
+	var emailCount int64
+	if err := db.Model(&Email{}).Count(&emailCount).Error; err != nil {
+		t.Fatalf("failed to count emails: %v", err)
+	}
+
+	if emailCount != 0 {
+		t.Fatalf("expected emails to be deleted, got %d emails remaining", emailCount)
+	}
+
+	var softDeletedUsers int64
+	if err := db.Unscoped().Model(&User{}).Count(&softDeletedUsers).Error; err != nil {
+		t.Fatalf("failed to count soft deleted users: %v", err)
+	}
+
+	if softDeletedUsers != 1 {
+		t.Fatalf("expected the user row to be kept as soft deleted, got %d", softDeletedUsers)
 	}
 }
 
@@ -474,11 +538,27 @@ func TestRepositoryCreateReturnsErrorWhenEmailInsertAffectsNoRows(t *testing.T) 
 	}
 }
 
-func TestRepositoryReadReturnsErrorWhenDisableCalculateTotalIsEmpty(t *testing.T) {
+func TestRepositoryReadCalculatesTotalWhenDisableCalculateTotalIsEmpty(t *testing.T) {
 	repo, _ := newPostgresRepository(t, true)
 
-	if _, err := repo.Read(context.Background(), ReadData{PaginatorRequest: entity.PaginatorRequest{Page: "1", Limit: "10"}}); err == nil {
-		t.Fatal("expected disable calculate total parse error")
+	if _, err := repo.Create(CreateData{Name: "Andre", Emails: []string{"andre@gmail.com"}}); err != nil {
+		t.Fatalf("expected create to succeed: %v", err)
+	}
+
+	res, err := repo.Read(context.Background(), ReadData{PaginatorRequest: entity.PaginatorRequest{
+		Page:  "1",
+		Limit: "10",
+	}})
+	if err != nil {
+		t.Fatalf("expected read to succeed with an empty disableCalculateTotal, got %v", err)
+	}
+
+	if res.Total != 1 {
+		t.Fatalf("expected total to be 1, got %d", res.Total)
+	}
+
+	if res.NextPage {
+		t.Fatal("expected next page to be false when the page is not full")
 	}
 }
 
@@ -497,7 +577,7 @@ func TestRepositoryReadFlagsNextPageWhenRecordsFillTheLimit(t *testing.T) {
 		OrderBy:               "name",
 		SortBy:                "asc",
 		Search:                "user",
-		DisableCalculateTotal: "true",
+		DisableCalculateTotal: "false",
 	}})
 	if err != nil {
 		t.Fatalf("expected read to succeed: %v", err)
@@ -509,6 +589,27 @@ func TestRepositoryReadFlagsNextPageWhenRecordsFillTheLimit(t *testing.T) {
 
 	if res.Total != 10 {
 		t.Fatalf("expected total to be 10, got %d", res.Total)
+	}
+}
+
+func TestRepositoryReadSkipsTotalWhenDisableCalculateTotalIsTrue(t *testing.T) {
+	repo, _ := newPostgresRepository(t, true)
+
+	if _, err := repo.Create(CreateData{Name: "Andre", Emails: []string{"andre@gmail.com"}}); err != nil {
+		t.Fatalf("expected create to succeed: %v", err)
+	}
+
+	res, err := repo.Read(context.Background(), ReadData{PaginatorRequest: entity.PaginatorRequest{
+		Page:                  "1",
+		Limit:                 "10",
+		DisableCalculateTotal: "true",
+	}})
+	if err != nil {
+		t.Fatalf("expected read to succeed: %v", err)
+	}
+
+	if res.Total != 0 {
+		t.Fatalf("expected total to be skipped, got %d", res.Total)
 	}
 }
 
