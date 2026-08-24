@@ -96,6 +96,7 @@ To use The `MrAndreID/GoAPI`, you must ensure that you meet the following requir
 | `internal/application/database`            | Configuration for Database                                |
 | `internal/application/database/migration`  | Migration Command                                         |
 | `internal/application/database/seeder`     | Seeder Command                                            |
+| `internal/application/dependency`          | Feature Dependency Validation on Start Up                 |
 | `internal/application/message_broker`      | Configuration for Message Broker                          |
 | `internal/application/object_storage`      | Configuration for Object Storage                          |
 | `internal/entity`                          | Shared Struct Data                                        |

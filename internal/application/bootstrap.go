@@ -6,6 +6,7 @@ import (
 	"github.com/MrAndreID/goapi/v2/internal/application/cache"
 	"github.com/MrAndreID/goapi/v2/internal/application/config"
 	"github.com/MrAndreID/goapi/v2/internal/application/database"
+	"github.com/MrAndreID/goapi/v2/internal/application/dependency"
 	messageBroker "github.com/MrAndreID/goapi/v2/internal/application/message_broker"
 	objectStorage "github.com/MrAndreID/goapi/v2/internal/application/object_storage"
 	userV1 "github.com/MrAndreID/goapi/v2/internal/feature/v1/user"
@@ -20,6 +21,12 @@ var (
 
 func initService(app *Application) {
 	UserV1Service = userV1.NewService(userV1.NewRepository(app.TimeLocation, app.Database))
+}
+
+func registeredFeatures() []dependency.Feature {
+	return []dependency.Feature{
+		userV1.Dependency(),
+	}
 }
 
 func Start(toggle bool) any {
@@ -47,6 +54,20 @@ func Start(toggle bool) any {
 		return nil
 	}
 
+	if err := dependency.Validate(registeredFeatures(), dependency.Availability{
+		dependency.Database:      cfg.UseDatabase,
+		dependency.Cache:         cfg.UseCache,
+		dependency.MessageBroker: cfg.UseMessageBroker,
+		dependency.ObjectStorage: cfg.UseObjectStorage,
+	}); err != nil {
+		logrus.WithFields(logrus.Fields{
+			"tag":   tag + "03",
+			"error": err.Error(),
+		}).Error("failed to fulfill feature dependency")
+
+		return nil
+	}
+
 	var databaseConnection *gorm.DB
 
 	if cfg.UseDatabase {
@@ -65,7 +86,7 @@ func Start(toggle bool) any {
 
 		if err != nil {
 			logrus.WithFields(logrus.Fields{
-				"tag":   tag + "03",
+				"tag":   tag + "04",
 				"error": err.Error(),
 			}).Error("failed to connect database")
 
@@ -86,7 +107,7 @@ func Start(toggle bool) any {
 
 		if err != nil {
 			logrus.WithFields(logrus.Fields{
-				"tag":   tag + "04",
+				"tag":   tag + "05",
 				"error": err.Error(),
 			}).Error("failed to connect cache")
 
@@ -108,7 +129,7 @@ func Start(toggle bool) any {
 
 		if err != nil {
 			logrus.WithFields(logrus.Fields{
-				"tag":   tag + "05",
+				"tag":   tag + "06",
 				"error": err.Error(),
 			}).Error("failed to connect object storage")
 
@@ -131,7 +152,7 @@ func Start(toggle bool) any {
 
 		if err != nil {
 			logrus.WithFields(logrus.Fields{
-				"tag":   tag + "06",
+				"tag":   tag + "07",
 				"error": err.Error(),
 			}).Error("failed to connect message broker")
 

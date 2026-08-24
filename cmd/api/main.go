@@ -1,7 +1,13 @@
 package main
 
-import "github.com/MrAndreID/goapi/v2/internal/application"
+import (
+	"os"
+
+	"github.com/MrAndreID/goapi/v2/internal/application"
+)
 
 func main() {
-	application.Start(true)
+	if application.Start(true) == nil {
+		os.Exit(1)
+	}
 }
