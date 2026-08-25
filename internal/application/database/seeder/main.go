@@ -14,7 +14,7 @@ import (
 	"gorm.io/gorm"
 )
 
-var seeder map[string]map[string]interface{} = map[string]map[string]interface{}{
+var seeder map[string]map[string]any = map[string]map[string]any{
 	"user1": {
 		"model": &user.User{},
 		"data": &user.User{
@@ -68,7 +68,7 @@ var seeder map[string]map[string]interface{} = map[string]map[string]interface{}
 func main() {
 	var tag string = "internal.application.database.seeders.main.main."
 
-	cfg, err := config.New(true)
+	cfg, err := config.New()
 
 	if err != nil {
 		logrus.WithFields(logrus.Fields{

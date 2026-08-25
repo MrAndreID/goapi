@@ -10,24 +10,22 @@ import (
 
 const MaxNameLength int = 10
 
-func LoadVersion(cfg *Config, toggle bool) {
-	if toggle {
-		var phrase string = "GoAPI"
+func LoadVersion(cfg *Config) {
+	var phrase string = "GoAPI"
 
-		if len(cfg.AppName) > MaxNameLength {
-			phrase = cfg.AppName[0:MaxNameLength]
-		} else {
-			phrase = cfg.AppName
-		}
-
-		name := figure.NewFigure(phrase, "standard", true)
-
-		name.Print()
-
-		fmt.Println(strings.Repeat("=", widestRow(name.Slicify())) + " " + cfg.AppVersion)
-
-		fmt.Println()
+	if len(cfg.AppName) > MaxNameLength {
+		phrase = cfg.AppName[0:MaxNameLength]
+	} else {
+		phrase = cfg.AppName
 	}
+
+	name := figure.NewFigure(phrase, "standard", true)
+
+	name.Print()
+
+	fmt.Println(strings.Repeat("=", widestRow(name.Slicify())) + " " + cfg.AppVersion)
+
+	fmt.Println()
 }
 
 func widestRow(rows []string) int {

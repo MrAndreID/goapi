@@ -56,7 +56,7 @@ type Config struct {
 	AllowedOrigins []string `env:"ALLOWED_ORIGINS" envSeparator:","`
 }
 
-func New(toggle bool) (*Config, error) {
+func New() (*Config, error) {
 	var (
 		tag string = "internal.application.config.main.New."
 		cfg Config
@@ -93,7 +93,7 @@ func New(toggle bool) (*Config, error) {
 		}
 	}
 
-	LoadVersion(&cfg, toggle)
+	LoadVersion(&cfg)
 
 	return &cfg, nil
 }

@@ -29,10 +29,10 @@ func registeredFeatures() []dependency.Feature {
 	}
 }
 
-func Start(toggle bool) any {
+func Start() error {
 	var tag string = "internal.application.bootstrap.Start."
 
-	cfg, err := config.New(toggle)
+	cfg, err := config.New()
 
 	if err != nil {
 		logrus.WithFields(logrus.Fields{
@@ -40,7 +40,7 @@ func Start(toggle bool) any {
 			"error": err.Error(),
 		}).Error("failed to initiate configuration")
 
-		return nil
+		return err
 	}
 
 	timeLocation, err := time.LoadLocation(cfg.AppLocation)
@@ -51,7 +51,7 @@ func Start(toggle bool) any {
 			"error": err.Error(),
 		}).Error("failed to load location for time")
 
-		return nil
+		return err
 	}
 
 	if err := dependency.Validate(registeredFeatures(), dependency.Availability{
@@ -65,7 +65,7 @@ func Start(toggle bool) any {
 			"error": err.Error(),
 		}).Error("failed to fulfill feature dependency")
 
-		return nil
+		return err
 	}
 
 	var databaseConnection *gorm.DB
@@ -90,7 +90,7 @@ func Start(toggle bool) any {
 				"error": err.Error(),
 			}).Error("failed to connect database")
 
-			return nil
+			return err
 		}
 	}
 
@@ -111,7 +111,7 @@ func Start(toggle bool) any {
 				"error": err.Error(),
 			}).Error("failed to connect cache")
 
-			return nil
+			return err
 		}
 	}
 
@@ -133,7 +133,7 @@ func Start(toggle bool) any {
 				"error": err.Error(),
 			}).Error("failed to connect object storage")
 
-			return nil
+			return err
 		}
 	}
 
@@ -156,7 +156,7 @@ func Start(toggle bool) any {
 				"error": err.Error(),
 			}).Error("failed to connect message broker")
 
-			return nil
+			return err
 		}
 	}
 
@@ -177,11 +177,7 @@ func Start(toggle bool) any {
 
 	e := newServer(cfg)
 
-	routes := RegisterRoutes(e, app)
+	RegisterRoutes(e, app)
 
-	if toggle {
-		return e.Start(":" + cfg.AppPort)
-	}
-
-	return routes
+	return e.Start(":" + cfg.AppPort)
 }

@@ -13,7 +13,7 @@ import (
 	"gorm.io/gorm"
 )
 
-var tables map[string]interface{} = map[string]interface{}{
+var tables map[string]any = map[string]any{
 	"users":  &user.User{},
 	"emails": &user.Email{},
 }
@@ -21,7 +21,7 @@ var tables map[string]interface{} = map[string]interface{}{
 func main() {
 	var tag string = "internal.application.database.migration.main.main."
 
-	cfg, err := config.New(true)
+	cfg, err := config.New()
 
 	if err != nil {
 		logrus.WithFields(logrus.Fields{
