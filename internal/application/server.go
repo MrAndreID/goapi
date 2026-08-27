@@ -2,6 +2,7 @@ package application
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/MrAndreID/goapi/v2/internal/application/config"
 
@@ -74,6 +75,7 @@ func newServer(cfg *config.Config) *echo.Echo {
 
 	e.Use(gomiddleware.EchoSetNoCache)
 	e.Use(gomiddleware.EchoSetMaintenanceMode("storage/maintenance.flag"))
+	e.Use(middleware.ContextTimeout(time.Duration(cfg.AppTimeout) * time.Second))
 
 	return e
 }

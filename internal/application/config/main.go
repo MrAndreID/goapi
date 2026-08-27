@@ -13,6 +13,7 @@ type Config struct {
 	AppDebug    bool   `env:"APP_DEBUG" envDefault:"false"`
 	AppVersion  string `env:"APP_VERSION" envDefault:"v1.0.0"`
 	AppKey      string `env:"APP_KEY"`
+	AppTimeout  int    `env:"APP_TIMEOUT" envDefault:"5"`
 
 	UseBodyDumpLog           bool `env:"USE_BODY_DUMP_LOG" envDefault:"false"`
 	BodyDumpLogRotationCount uint `env:"BODY_DUMP_LOG_ROTATION_COUNT" envDefault:"30"`
