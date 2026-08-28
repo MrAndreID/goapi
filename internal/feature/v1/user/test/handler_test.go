@@ -1,4 +1,4 @@
-package user
+package user_test
 
 import (
 	"context"
@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/MrAndreID/goapi/v2/internal/entity"
+	. "github.com/MrAndreID/goapi/v2/internal/feature/v1/user"
 
 	"github.com/labstack/echo/v5"
 )
@@ -21,7 +22,7 @@ type stubService struct {
 	deleteFunc func(DeleteData) error
 }
 
-func (s *stubService) Create(req CreateData) (User, error) {
+func (s *stubService) Create(ctx context.Context, req CreateData) (User, error) {
 	if s.createFunc != nil {
 		return s.createFunc(req)
 	}
@@ -35,14 +36,14 @@ func (s *stubService) Read(ctx context.Context, req ReadData) (entity.PaginatorR
 	return entity.PaginatorResponse{}, nil
 }
 
-func (s *stubService) Update(req UpdateData) error {
+func (s *stubService) Update(ctx context.Context, req UpdateData) error {
 	if s.updateFunc != nil {
 		return s.updateFunc(req)
 	}
 	return nil
 }
 
-func (s *stubService) Delete(req DeleteData) error {
+func (s *stubService) Delete(ctx context.Context, req DeleteData) error {
 	if s.deleteFunc != nil {
 		return s.deleteFunc(req)
 	}

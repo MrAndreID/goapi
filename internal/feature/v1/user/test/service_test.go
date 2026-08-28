@@ -1,4 +1,4 @@
-package user
+package user_test
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/MrAndreID/goapi/v2/internal/entity"
+	. "github.com/MrAndreID/goapi/v2/internal/feature/v1/user"
 )
 
 type stubRepository struct {
@@ -18,7 +19,27 @@ type stubRepository struct {
 	deleteCalls int
 }
 
-func (s *stubRepository) Create(req CreateData) (User, error) {
+type testService struct {
+	*Service
+}
+
+func (s *testService) Create(req CreateData) (User, error) {
+	return s.Service.Create(context.Background(), req)
+}
+
+func (s *testService) Update(req UpdateData) error {
+	return s.Service.Update(context.Background(), req)
+}
+
+func (s *testService) Delete(req DeleteData) error {
+	return s.Service.Delete(context.Background(), req)
+}
+
+func newTestService(repository InterfaceRepository) *testService {
+	return &testService{Service: NewService(repository)}
+}
+
+func (s *stubRepository) Create(ctx context.Context, req CreateData) (User, error) {
 	s.createCalls++
 	if s.createFunc != nil {
 		return s.createFunc(req)
@@ -33,7 +54,7 @@ func (s *stubRepository) Read(ctx context.Context, req ReadData) (entity.Paginat
 	return entity.PaginatorResponse{}, nil
 }
 
-func (s *stubRepository) Update(req UpdateData) error {
+func (s *stubRepository) Update(ctx context.Context, req UpdateData) error {
 	s.updateCalls++
 	if s.updateFunc != nil {
 		return s.updateFunc(req)
@@ -41,7 +62,7 @@ func (s *stubRepository) Update(req UpdateData) error {
 	return nil
 }
 
-func (s *stubRepository) Delete(req DeleteData) error {
+func (s *stubRepository) Delete(ctx context.Context, req DeleteData) error {
 	s.deleteCalls++
 	if s.deleteFunc != nil {
 		return s.deleteFunc(req)
@@ -51,7 +72,7 @@ func (s *stubRepository) Delete(req DeleteData) error {
 
 func TestServiceCreateRejectsDuplicateEmails(t *testing.T) {
 	repo := &stubRepository{}
-	svc := NewService(repo)
+	svc := newTestService(repo)
 
 	_, err := svc.Create(CreateData{Name: "Andre", Emails: []string{"andre@gmail.com", "andre@gmail.com"}})
 	if err == nil {
@@ -71,7 +92,7 @@ func TestServiceCreateDelegatesToRepository(t *testing.T) {
 	repo := &stubRepository{createFunc: func(req CreateData) (User, error) {
 		return User{ID: "user-1", Name: req.Name, Emails: []Email{{Email: req.Emails[0]}}}, nil
 	}}
-	svc := NewService(repo)
+	svc := newTestService(repo)
 
 	user, err := svc.Create(CreateData{Name: "Andre", Emails: []string{"andre@gmail.com"}})
 	if err != nil {
@@ -89,7 +110,7 @@ func TestServiceCreateDelegatesToRepository(t *testing.T) {
 
 func TestServiceUpdateRejectsDuplicateEmails(t *testing.T) {
 	repo := &stubRepository{}
-	svc := NewService(repo)
+	svc := newTestService(repo)
 
 	err := svc.Update(UpdateData{ID: "user-1", Emails: []string{"andre@gmail.com", "andre@gmail.com"}})
 	if err == nil {
@@ -112,7 +133,7 @@ func TestServiceDeleteDelegatesToRepository(t *testing.T) {
 		}
 		return nil
 	}}
-	svc := NewService(repo)
+	svc := newTestService(repo)
 
 	if err := svc.Delete(DeleteData{ID: "user-1"}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -127,7 +148,7 @@ func TestServiceReadDelegatesToRepository(t *testing.T) {
 	repo := &stubRepository{readFunc: func(ctx context.Context, req ReadData) (entity.PaginatorResponse, error) {
 		return entity.PaginatorResponse{Total: 1}, nil
 	}}
-	svc := NewService(repo)
+	svc := newTestService(repo)
 
 	data, err := svc.Read(context.Background(), ReadData{})
 	if err != nil {
@@ -143,7 +164,7 @@ func TestServiceReadReturnsRepositoryError(t *testing.T) {
 	repo := &stubRepository{readFunc: func(ctx context.Context, req ReadData) (entity.PaginatorResponse, error) {
 		return entity.PaginatorResponse{}, errors.New("read failed")
 	}}
-	svc := NewService(repo)
+	svc := newTestService(repo)
 
 	_, err := svc.Read(context.Background(), ReadData{})
 	if err == nil || err.Error() != "read failed" {
@@ -155,7 +176,7 @@ func TestServiceUpdateReturnsRepositoryError(t *testing.T) {
 	repo := &stubRepository{updateFunc: func(req UpdateData) error {
 		return errors.New("update failed")
 	}}
-	svc := NewService(repo)
+	svc := newTestService(repo)
 
 	err := svc.Update(UpdateData{ID: "user-1", Emails: []string{"andre@gmail.com"}})
 	if err == nil || err.Error() != "update failed" {
@@ -167,7 +188,7 @@ func TestServiceDeleteReturnsRepositoryError(t *testing.T) {
 	repo := &stubRepository{deleteFunc: func(req DeleteData) error {
 		return errors.New("delete failed")
 	}}
-	svc := NewService(repo)
+	svc := newTestService(repo)
 
 	err := svc.Delete(DeleteData{ID: "user-1"})
 	if err == nil || err.Error() != "delete failed" {
@@ -179,7 +200,7 @@ func TestServiceCreateReturnsRepositoryError(t *testing.T) {
 	repo := &stubRepository{createFunc: func(req CreateData) (User, error) {
 		return User{}, errors.New("create failed")
 	}}
-	svc := NewService(repo)
+	svc := newTestService(repo)
 
 	if _, err := svc.Create(CreateData{Name: "Andre", Emails: []string{"andre@gmail.com"}}); err == nil || err.Error() != "create failed" {
 		t.Fatalf("expected repository error, got %v", err)
@@ -193,7 +214,7 @@ func TestServiceUpdateDelegatesToRepository(t *testing.T) {
 		}
 		return nil
 	}}
-	svc := NewService(repo)
+	svc := newTestService(repo)
 
 	if err := svc.Update(UpdateData{ID: "user-1", Name: "Andre", Emails: []string{"andre@gmail.com", "bndre@gmail.com"}}); err != nil {
 		t.Fatalf("unexpected error: %v", err)

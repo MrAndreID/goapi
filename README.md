@@ -74,11 +74,11 @@ To Run Unit Test for The `MrAndreID/GoAPI`, you must ensure that you meet the fo
 - Prepare a PostgreSQL Server for The Repository Unit Test
 - Run Unit Test for The `MrAndreID/GoAPI`
 ```go
-# go test -v -cover ./...
+# go test -v -cover -coverpkg=./internal/feature/... ./internal/feature/... -count=1
 ```
 - Run Unit Test for The `MrAndreID/GoAPI` with Coverage Profile
 ```go
-# go test -v -cover -coverprofile=coverage.out ./...
+# go test -v -cover -coverpkg=./internal/feature/... -coverprofile=coverage.out ./internal/feature/... -count=1
 # go tool cover -func=coverage.out
 ```
 

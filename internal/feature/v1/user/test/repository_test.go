@@ -1,4 +1,4 @@
-package user
+package user_test
 
 import (
 	"context"
@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/MrAndreID/goapi/v2/internal/entity"
+	. "github.com/MrAndreID/goapi/v2/internal/feature/v1/user"
 
 	"github.com/google/uuid"
 	"github.com/joho/godotenv"
@@ -206,7 +207,23 @@ func newPostgresDatabase(t *testing.T) *gorm.DB {
 // newPostgresRepository returns a repository backed by an isolated schema. When
 // migrate is false the schema is left empty so the caller can exercise failures that
 // come from missing tables.
-func newPostgresRepository(t *testing.T, migrate bool) (*Repository, *gorm.DB) {
+type testRepository struct {
+	*Repository
+}
+
+func (r *testRepository) Create(req CreateData) (User, error) {
+	return r.Repository.Create(context.Background(), req)
+}
+
+func (r *testRepository) Update(req UpdateData) error {
+	return r.Repository.Update(context.Background(), req)
+}
+
+func (r *testRepository) Delete(req DeleteData) error {
+	return r.Repository.Delete(context.Background(), req)
+}
+
+func newPostgresRepository(t *testing.T, migrate bool) (*testRepository, *gorm.DB) {
 	t.Helper()
 
 	db := newPostgresDatabase(t)
@@ -217,7 +234,7 @@ func newPostgresRepository(t *testing.T, migrate bool) (*Repository, *gorm.DB) {
 		}
 	}
 
-	return NewRepository(time.UTC, db), db
+	return &testRepository{Repository: NewRepository(time.UTC, db)}, db
 }
 
 // mustExec runs raw SQL used to bend the database into a failing state, such as
@@ -295,6 +312,73 @@ func readUsers(t *testing.T, response entity.PaginatorResponse) []User {
 	}
 
 	return users
+}
+
+func unavailableRepository(t *testing.T) *Repository {
+	t.Helper()
+
+	db, err := gorm.Open(postgres.Open("host=127.0.0.1 port=1 user=invalid dbname=invalid sslmode=disable connect_timeout=1"), &gorm.Config{DisableAutomaticPing: true})
+	if err != nil {
+		t.Fatalf("failed to create unavailable database: %v", err)
+	}
+
+	return NewRepository(time.UTC, db)
+}
+
+func TestRepositoryCreateReturnsTransactionError(t *testing.T) {
+	repo := unavailableRepository(t)
+
+	if _, err := repo.Create(context.Background(), CreateData{Name: "Andre"}); err == nil {
+		t.Fatal("expected create to fail when the database connection is closed")
+	}
+}
+
+func TestRepositoryUpdateReturnsTransactionError(t *testing.T) {
+	repo := unavailableRepository(t)
+
+	if err := repo.Update(context.Background(), UpdateData{ID: "user-1"}); err == nil {
+		t.Fatal("expected update to fail when the database connection is closed")
+	}
+}
+
+func TestRepositoryDeleteReturnsTransactionError(t *testing.T) {
+	repo := unavailableRepository(t)
+
+	if err := repo.Delete(context.Background(), DeleteData{ID: "user-1"}); err == nil {
+		t.Fatal("expected delete to fail when the database connection is closed")
+	}
+}
+
+func TestRepositoryReadReturnsFindError(t *testing.T) {
+	repo, db := newPostgresRepository(t, true)
+	mustExec(t, db, "DROP TABLE users CASCADE")
+
+	if _, err := repo.Read(context.Background(), ReadData{}); err == nil {
+		t.Fatal("expected read to fail when the users table is missing")
+	}
+}
+
+func TestRepositoryReadReturnsCountError(t *testing.T) {
+	repo, db := newPostgresRepository(t, true)
+
+	var dropUsers sync.Once
+	if err := db.Callback().Query().After("gorm:query").Register("test:drop_users_after_query", func(query *gorm.DB) {
+		if query.Statement.Schema != nil && query.Statement.Schema.Table == "users" {
+			dropUsers.Do(func() {
+				mustExec(t, db, "DROP TABLE users CASCADE")
+			})
+		}
+	}); err != nil {
+		t.Fatalf("failed to register query callback: %v", err)
+	}
+
+	t.Cleanup(func() {
+		_ = db.Callback().Query().Remove("test:drop_users_after_query")
+	})
+
+	if _, err := repo.Read(context.Background(), ReadData{}); err == nil {
+		t.Fatal("expected read to fail when counting users is impossible")
+	}
 }
 
 func TestRepositoryCreateReadUpdateDelete(t *testing.T) {

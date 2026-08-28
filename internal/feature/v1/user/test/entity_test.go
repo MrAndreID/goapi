@@ -1,9 +1,10 @@
-package user
+package user_test
 
 import (
 	"testing"
 
 	"github.com/MrAndreID/goapi/v2/internal/entity"
+	. "github.com/MrAndreID/goapi/v2/internal/feature/v1/user"
 
 	"github.com/google/uuid"
 )

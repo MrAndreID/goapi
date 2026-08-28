@@ -27,25 +27,34 @@ func NewRepository(timeLocation *time.Location, db *gorm.DB) *Repository {
 }
 
 type InterfaceRepository interface {
-	Create(CreateData) (User, error)
+	Create(context.Context, CreateData) (User, error)
 	Read(context.Context, ReadData) (entity.PaginatorResponse, error)
-	Update(UpdateData) error
-	Delete(DeleteData) error
+	Update(context.Context, UpdateData) error
+	Delete(context.Context, DeleteData) error
 }
 
-func (r *Repository) Create(req CreateData) (User, error) {
+func (r *Repository) Create(ctx context.Context, req CreateData) (User, error) {
 	var (
 		tag  string = "internal.feature.v1.user.repository.Create."
 		user User
 	)
 
-	tx := r.Database.Begin()
+	tx := r.Database.WithContext(ctx).Begin()
+
+	if tx.Error != nil {
+		logrus.WithFields(logrus.Fields{
+			"tag":   tag + "01",
+			"error": tx.Error.Error(),
+		}).Error("failed to initiate database transaction")
+
+		return user, tx.Error
+	}
 
 	userUUID, err := uuid.NewRandom()
 
 	if err != nil {
 		logrus.WithFields(logrus.Fields{
-			"tag":   tag + "01",
+			"tag":   tag + "02",
 			"error": err.Error(),
 		}).Error("failed to generate uuid")
 
@@ -63,7 +72,7 @@ func (r *Repository) Create(req CreateData) (User, error) {
 
 	if createUser.Error != nil {
 		logrus.WithFields(logrus.Fields{
-			"tag":   tag + "02",
+			"tag":   tag + "03",
 			"error": createUser.Error.Error(),
 		}).Error("failed to create user")
 
@@ -74,7 +83,7 @@ func (r *Repository) Create(req CreateData) (User, error) {
 
 	if createUser.RowsAffected == 0 {
 		logrus.WithFields(logrus.Fields{
-			"tag":   tag + "03",
+			"tag":   tag + "04",
 			"error": "Failed to Create User",
 		}).Error("failed to create user")
 
@@ -90,7 +99,7 @@ func (r *Repository) Create(req CreateData) (User, error) {
 
 		if err != nil {
 			logrus.WithFields(logrus.Fields{
-				"tag":   tag + "04",
+				"tag":   tag + "05",
 				"error": err.Error(),
 			}).Error("failed to generate uuid")
 
@@ -109,7 +118,7 @@ func (r *Repository) Create(req CreateData) (User, error) {
 
 		if createEmail.Error != nil {
 			logrus.WithFields(logrus.Fields{
-				"tag":   tag + "05",
+				"tag":   tag + "06",
 				"error": createEmail.Error.Error(),
 			}).Error("failed to create email")
 
@@ -120,7 +129,7 @@ func (r *Repository) Create(req CreateData) (User, error) {
 
 		if createEmail.RowsAffected == 0 {
 			logrus.WithFields(logrus.Fields{
-				"tag":   tag + "06",
+				"tag":   tag + "07",
 				"error": "Failed to Create Email",
 			}).Error("failed to create email")
 
@@ -198,9 +207,9 @@ func (r *Repository) Read(ctx context.Context, req ReadData) (entity.PaginatorRe
 		}
 	}
 
-	countTotal := r.Database.Model(&User{}).Preload("Emails")
+	countTotal := r.Database.WithContext(ctx).Model(&User{}).Preload("Emails")
 
-	queryBuilder := r.Database.Model(&User{}).Preload("Emails")
+	queryBuilder := r.Database.WithContext(ctx).Model(&User{}).Preload("Emails")
 
 	if req.ID != "" {
 		countTotal.Where("id = ?", req.ID)
@@ -222,12 +231,26 @@ func (r *Repository) Read(ctx context.Context, req ReadData) (entity.PaginatorRe
 		false,
 	)
 
-	queryBuilder.Find(&users)
+	if err = queryBuilder.Find(&users).Error; err != nil {
+		logrus.WithFields(logrus.Fields{
+			"tag":   tag + "04",
+			"error": err.Error(),
+		}).Error("failed to find data")
+
+		return res, err
+	}
 
 	res.Records = users
 
 	if !disableCalculateTotal {
-		countTotal.Count(&total)
+		if err = countTotal.Count(&total).Error; err != nil {
+			logrus.WithFields(logrus.Fields{
+				"tag":   tag + "05",
+				"error": err.Error(),
+			}).Error("failed to count total data")
+
+			return res, err
+		}
 
 		res.Total = total
 	}
@@ -239,19 +262,28 @@ func (r *Repository) Read(ctx context.Context, req ReadData) (entity.PaginatorRe
 	return res, nil
 }
 
-func (r *Repository) Update(req UpdateData) error {
+func (r *Repository) Update(ctx context.Context, req UpdateData) error {
 	var (
 		tag  string = "internal.feature.v1.user.repository.Update."
 		user User
 	)
 
-	tx := r.Database.Begin()
+	tx := r.Database.WithContext(ctx).Begin()
+
+	if tx.Error != nil {
+		logrus.WithFields(logrus.Fields{
+			"tag":   tag + "01",
+			"error": tx.Error.Error(),
+		}).Error("failed to initiate database transaction")
+
+		return tx.Error
+	}
 
 	readUser := tx.First(&user, "id = ?", req.ID)
 
 	if readUser.RowsAffected == 0 {
 		logrus.WithFields(logrus.Fields{
-			"tag":   tag + "01",
+			"tag":   tag + "02",
 			"error": "Failed to Read User Data",
 		}).Error("failed to read user data")
 
@@ -269,7 +301,7 @@ func (r *Repository) Update(req UpdateData) error {
 
 		if deleteEmail.Error != nil {
 			logrus.WithFields(logrus.Fields{
-				"tag":   tag + "02",
+				"tag":   tag + "03",
 				"error": deleteEmail.Error.Error(),
 			}).Error("failed to delete email data")
 
@@ -280,7 +312,7 @@ func (r *Repository) Update(req UpdateData) error {
 
 		if deleteEmail.RowsAffected == 0 {
 			logrus.WithFields(logrus.Fields{
-				"tag":   tag + "03",
+				"tag":   tag + "04",
 				"error": "Failed to Delete Email Data",
 			}).Error("failed to delete email data")
 
@@ -296,7 +328,7 @@ func (r *Repository) Update(req UpdateData) error {
 
 			if err != nil {
 				logrus.WithFields(logrus.Fields{
-					"tag":   tag + "04",
+					"tag":   tag + "05",
 					"error": err.Error(),
 				}).Error("failed to generate uuid")
 
@@ -315,7 +347,7 @@ func (r *Repository) Update(req UpdateData) error {
 
 			if createEmail.Error != nil {
 				logrus.WithFields(logrus.Fields{
-					"tag":   tag + "05",
+					"tag":   tag + "06",
 					"error": createEmail.Error.Error(),
 				}).Error("failed to create email")
 
@@ -326,7 +358,7 @@ func (r *Repository) Update(req UpdateData) error {
 
 			if createEmail.RowsAffected == 0 {
 				logrus.WithFields(logrus.Fields{
-					"tag":   tag + "06",
+					"tag":   tag + "07",
 					"error": "Failed to Create Email",
 				}).Error("failed to create email")
 
@@ -344,7 +376,7 @@ func (r *Repository) Update(req UpdateData) error {
 
 		if readEmail.RowsAffected == 0 {
 			logrus.WithFields(logrus.Fields{
-				"tag":   tag + "07",
+				"tag":   tag + "08",
 				"error": "Failed to Read Email Data",
 			}).Error("failed to read email data")
 
@@ -362,7 +394,7 @@ func (r *Repository) Update(req UpdateData) error {
 
 	if updateUser.Error != nil {
 		logrus.WithFields(logrus.Fields{
-			"tag":   tag + "08",
+			"tag":   tag + "09",
 			"error": updateUser.Error.Error(),
 		}).Error("failed to update user data")
 
@@ -373,7 +405,7 @@ func (r *Repository) Update(req UpdateData) error {
 
 	if updateUser.RowsAffected == 0 {
 		logrus.WithFields(logrus.Fields{
-			"tag":   tag + "09",
+			"tag":   tag + "10",
 			"error": "Failed to Update User Data",
 		}).Error("failed to update user data")
 
@@ -387,19 +419,28 @@ func (r *Repository) Update(req UpdateData) error {
 	return nil
 }
 
-func (r *Repository) Delete(req DeleteData) error {
+func (r *Repository) Delete(ctx context.Context, req DeleteData) error {
 	var (
 		tag  string = "internal.feature.v1.user.repository.Delete."
 		user User
 	)
 
-	tx := r.Database.Begin()
+	tx := r.Database.WithContext(ctx).Begin()
+
+	if tx.Error != nil {
+		logrus.WithFields(logrus.Fields{
+			"tag":   tag + "01",
+			"error": tx.Error.Error(),
+		}).Error("failed to initiate database transaction")
+
+		return tx.Error
+	}
 
 	readUser := tx.First(&user, "id = ?", req.ID)
 
 	if readUser.RowsAffected == 0 {
 		logrus.WithFields(logrus.Fields{
-			"tag":   tag + "01",
+			"tag":   tag + "02",
 			"error": "Failed To Read User Data",
 		}).Error("failed to read user data")
 
@@ -412,7 +453,7 @@ func (r *Repository) Delete(req DeleteData) error {
 
 	if deleteUser.Error != nil {
 		logrus.WithFields(logrus.Fields{
-			"tag":   tag + "02",
+			"tag":   tag + "03",
 			"error": deleteUser.Error.Error(),
 		}).Error("failed to delete user data")
 
@@ -423,7 +464,7 @@ func (r *Repository) Delete(req DeleteData) error {
 
 	if deleteUser.RowsAffected == 0 {
 		logrus.WithFields(logrus.Fields{
-			"tag":   tag + "03",
+			"tag":   tag + "04",
 			"error": "Failed To Delete User Data",
 		}).Error("failed to delete user data")
 
@@ -436,7 +477,7 @@ func (r *Repository) Delete(req DeleteData) error {
 
 	if deleteEmail.Error != nil {
 		logrus.WithFields(logrus.Fields{
-			"tag":   tag + "04",
+			"tag":   tag + "05",
 			"error": deleteEmail.Error.Error(),
 		}).Error("failed to delete email data")
 
@@ -447,7 +488,7 @@ func (r *Repository) Delete(req DeleteData) error {
 
 	if deleteEmail.RowsAffected == 0 {
 		logrus.WithFields(logrus.Fields{
-			"tag":   tag + "05",
+			"tag":   tag + "06",
 			"error": "Failed To Delete Email Data",
 		}).Error("failed to delete email data")
 

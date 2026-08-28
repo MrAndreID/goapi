@@ -20,13 +20,13 @@ func NewService(repository InterfaceRepository) *Service {
 }
 
 type InterfaceService interface {
-	Create(CreateData) (User, error)
+	Create(context.Context, CreateData) (User, error)
 	Read(context.Context, ReadData) (entity.PaginatorResponse, error)
-	Update(UpdateData) error
-	Delete(DeleteData) error
+	Update(context.Context, UpdateData) error
+	Delete(context.Context, DeleteData) error
 }
 
-func (s *Service) Create(req CreateData) (User, error) {
+func (s *Service) Create(ctx context.Context, req CreateData) (User, error) {
 	var (
 		tag  string = "internal.feature.v1.user.service.Create."
 		user User
@@ -45,7 +45,7 @@ func (s *Service) Create(req CreateData) (User, error) {
 		}
 	}
 
-	user, err := s.Repository.Create(req)
+	user, err := s.Repository.Create(ctx, req)
 
 	if err != nil {
 		logrus.WithFields(logrus.Fields{
@@ -79,7 +79,7 @@ func (s *Service) Read(ctx context.Context, req ReadData) (entity.PaginatorRespo
 	return data, nil
 }
 
-func (s *Service) Update(req UpdateData) error {
+func (s *Service) Update(ctx context.Context, req UpdateData) error {
 	var tag string = "internal.feature.v1.user.service.Update."
 
 	if len(req.Emails) > 0 {
@@ -97,7 +97,7 @@ func (s *Service) Update(req UpdateData) error {
 		}
 	}
 
-	err := s.Repository.Update(req)
+	err := s.Repository.Update(ctx, req)
 
 	if err != nil {
 		logrus.WithFields(logrus.Fields{
@@ -111,10 +111,10 @@ func (s *Service) Update(req UpdateData) error {
 	return nil
 }
 
-func (s *Service) Delete(req DeleteData) error {
+func (s *Service) Delete(ctx context.Context, req DeleteData) error {
 	var tag string = "internal.feature.v1.user.service.Delete."
 
-	if err := s.Repository.Delete(req); err != nil {
+	if err := s.Repository.Delete(ctx, req); err != nil {
 		logrus.WithFields(logrus.Fields{
 			"tag":   tag + "01",
 			"error": err.Error(),

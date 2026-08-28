@@ -48,7 +48,7 @@ func (h *handler) Create(c *echo.Context) error {
 		})
 	}
 
-	user, err := h.Service.Create(req)
+	user, err := h.Service.Create(c.Request().Context(), req)
 
 	if err != nil {
 		logrus.WithFields(logrus.Fields{
@@ -128,7 +128,7 @@ func (h *handler) Update(c *echo.Context) error {
 		})
 	}
 
-	err := h.Service.Update(req)
+	err := h.Service.Update(c.Request().Context(), req)
 
 	if err != nil {
 		logrus.WithFields(logrus.Fields{
@@ -167,7 +167,7 @@ func (h *handler) Delete(c *echo.Context) error {
 		})
 	}
 
-	if err := h.Service.Delete(req); err != nil {
+	if err := h.Service.Delete(c.Request().Context(), req); err != nil {
 		logrus.WithFields(logrus.Fields{
 			"tag":   tag + "02",
 			"error": err.Error(),
