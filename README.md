@@ -100,8 +100,10 @@ To use The `MrAndreID/GoAPI`, you must ensure that you meet the following requir
 | `internal/application/message_broker`      | Configuration for Message Broker                          |
 | `internal/application/object_storage`      | Configuration for Object Storage                          |
 | `internal/entity`                          | Shared Struct Data                                        |
-| `internal/feature/v1/user`                 | User Feature and Unit Test                                |
-| `storage`                                  | Log File and Maintenance Flag File                         |
+| `internal/feature/v1/user`                 | User Feature                                              |
+| `internal/feature/v1/user/test`            | Unit Test for User Feature                                |
+| `storage`                                  | Folder for Add Maintenance Flag File                      |
+| `storage/log`                              | Folder for Log File                                       |
 
 - Run The `MrAndreID/GoAPI`
 ```go

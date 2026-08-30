@@ -1,6 +1,7 @@
 package application
 
 import (
+	"errors"
 	"net/http"
 	"time"
 
@@ -75,7 +76,12 @@ func newServer(cfg *config.Config) *echo.Echo {
 
 	e.Use(gomiddleware.EchoSetNoCache)
 	e.Use(gomiddleware.EchoSetMaintenanceMode("storage/maintenance.flag"))
-	e.Use(middleware.ContextTimeout(time.Duration(cfg.AppTimeout) * time.Second))
+	e.Use(middleware.ContextTimeoutWithConfig(middleware.ContextTimeoutConfig{
+		Timeout: time.Duration(cfg.AppTimeout) * time.Second,
+		ErrorHandler: func(c *echo.Context, err error) error {
+			return errors.New("REQUEST_TIMEOUT")
+		},
+	}))
 
 	return e
 }
