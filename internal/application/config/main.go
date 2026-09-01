@@ -7,13 +7,15 @@ import (
 )
 
 type Config struct {
-	AppName     string `env:"APP_NAME" envDefault:"Go Application Programming Interface (API)"`
-	AppPort     string `env:"APP_PORT,notEmpty"`
-	AppLocation string `env:"APP_LOCATION" envDefault:"Asia/Jakarta"`
-	AppDebug    bool   `env:"APP_DEBUG" envDefault:"false"`
-	AppVersion  string `env:"APP_VERSION" envDefault:"v1.0.0"`
-	AppKey      string `env:"APP_KEY"`
-	AppTimeout  int    `env:"APP_TIMEOUT" envDefault:"5"`
+	AppName              string  `env:"APP_NAME" envDefault:"Go Application Programming Interface (API)"`
+	AppPort              string  `env:"APP_PORT,notEmpty"`
+	AppLocation          string  `env:"APP_LOCATION" envDefault:"Asia/Jakarta"`
+	AppDebug             bool    `env:"APP_DEBUG" envDefault:"false"`
+	AppVersion           string  `env:"APP_VERSION" envDefault:"v1.0.0"`
+	AppKey               string  `env:"APP_KEY,notEmpty"`
+	AppTimeout           int     `env:"APP_TIMEOUT" envDefault:"5"`
+	AppRateLimit         float64 `env:"APP_RATE_LIMIT" envDefault:"10.0"`
+	AppRateLimitDeadline int     `env:"APP_RATE_LIMIT_DEADLINE" envDefault:"60"`
 
 	UseBodyDumpLog           bool `env:"USE_BODY_DUMP_LOG" envDefault:"false"`
 	BodyDumpLogRotationCount uint `env:"BODY_DUMP_LOG_ROTATION_COUNT" envDefault:"30"`

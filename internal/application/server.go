@@ -25,6 +25,7 @@ func newServer(cfg *config.Config) *echo.Echo {
 	e.Pre(gomiddleware.EchoSetRequestID)
 
 	e.Use(middleware.Recover())
+
 	e.Use(middleware.BodyDump(func(c *echo.Context, requestBody, responseBody []byte, err error) {
 		request := struct {
 			Header any    `json:"header"`
@@ -76,12 +77,27 @@ func newServer(cfg *config.Config) *echo.Echo {
 
 	e.Use(gomiddleware.EchoSetNoCache)
 	e.Use(gomiddleware.EchoSetMaintenanceMode("storage/maintenance.flag"))
+
 	e.Use(middleware.ContextTimeoutWithConfig(middleware.ContextTimeoutConfig{
 		Timeout: time.Duration(cfg.AppTimeout) * time.Second,
 		ErrorHandler: func(c *echo.Context, err error) error {
 			return errors.New("REQUEST_TIMEOUT")
 		},
 	}))
+
+	rateLimiterConfig := middleware.RateLimiterConfig{
+		Store: middleware.NewRateLimiterMemoryStoreWithConfig(
+			middleware.RateLimiterMemoryStoreConfig{Rate: cfg.AppRateLimit, Burst: int(cfg.AppRateLimit), ExpiresIn: time.Duration(cfg.AppRateLimitDeadline) * time.Second},
+		),
+		ErrorHandler: func(c *echo.Context, err error) error {
+			return errors.New("FORBIDDEN")
+		},
+		DenyHandler: func(c *echo.Context, identifier string, err error) error {
+			return errors.New("TOO_MANY_REQUESTS")
+		},
+	}
+
+	e.Use(middleware.RateLimiterWithConfig(rateLimiterConfig))
 
 	return e
 }
