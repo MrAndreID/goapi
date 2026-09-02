@@ -11,16 +11,17 @@ import (
 )
 
 type Database struct {
-	Connection string
-	Host       string
-	Port       string
-	Username   string
-	Password   string
-	Name       string
-	SSLMode    string
-	ParseTime  string
-	Charset    string
-	Timezone   string
+	Connection     string
+	Host           string
+	Port           string
+	Username       string
+	Password       string
+	Name           string
+	SSLMode        string
+	ParseTime      string
+	Charset        string
+	Timezone       string
+	ConnectTimeout string
 }
 
 func New(database *Database, debug bool) (*gorm.DB, error) {
@@ -55,7 +56,7 @@ func New(database *Database, debug bool) (*gorm.DB, error) {
 }
 
 func (database *Database) PostgreSQL() (*gorm.DB, error) {
-	dsn := "host=" + database.Host + " user=" + database.Username + " password=" + database.Password + " dbname=" + database.Name + " port=" + database.Port + " sslmode=" + database.SSLMode + " TimeZone=" + database.Timezone
+	dsn := "host=" + database.Host + " user=" + database.Username + " password=" + database.Password + " dbname=" + database.Name + " port=" + database.Port + " sslmode=" + database.SSLMode + " TimeZone=" + database.Timezone + " connect_timeout=" + database.ConnectTimeout
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 
@@ -74,7 +75,7 @@ func (database *Database) PostgreSQL() (*gorm.DB, error) {
 func (database *Database) MySQL() (*gorm.DB, error) {
 	timezone := strings.Replace(database.Timezone, "/", "%2F", -1)
 
-	dsn := database.Username + ":" + database.Password + "@tcp(" + database.Host + ":" + database.Port + ")/" + database.Name + "?charset=" + database.Charset + "&parseTime=" + database.ParseTime + "&loc=" + timezone
+	dsn := database.Username + ":" + database.Password + "@tcp(" + database.Host + ":" + database.Port + ")/" + database.Name + "?charset=" + database.Charset + "&parseTime=" + database.ParseTime + "&loc=" + timezone + "&timeout=" + database.ConnectTimeout + "s"
 
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 

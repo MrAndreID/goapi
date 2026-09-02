@@ -3,8 +3,8 @@ module github.com/MrAndreID/goapi/v2
 go 1.26
 
 require (
-	github.com/MrAndreID/gomiddleware/v2 v2.2.0
-	github.com/MrAndreID/gopackage/v2 v2.1.0
+	github.com/MrAndreID/gomiddleware/v2 v2.2.1
+	github.com/MrAndreID/gopackage/v2 v2.1.2
 	github.com/bradfitz/gomemcache v0.0.0-20260422231931-4d751bb6e37c
 	github.com/caarlos0/env/v11 v11.4.1
 	github.com/common-nighthawk/go-figure v0.0.0-20210622060536-734e95fb86be
@@ -17,7 +17,7 @@ require (
 	github.com/rabbitmq/amqp091-go v1.14.0
 	github.com/redis/go-redis/v9 v9.22.0
 	github.com/segmentio/kafka-go v0.4.51
-	github.com/sirupsen/logrus v1.10.1
+	github.com/sirupsen/logrus v1.10.2
 	github.com/spf13/cast v1.10.0
 	gorm.io/driver/mysql v1.6.0
 	gorm.io/driver/postgres v1.6.2

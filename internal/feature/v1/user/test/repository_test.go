@@ -31,6 +31,10 @@ const (
 	envFileName     = ".env"
 	envTestFileName = ".env.test"
 
+	// defaultConnectTimeoutSeconds is how long a connection attempt may take before the
+	// suite gives up. Override it with TEST_DATABASE_CONNECT_TIMEOUT on a slow host.
+	defaultConnectTimeoutSeconds = "5"
+
 	// postgresUnreachableHint explains what to configure when the repository tests
 	// cannot find a database. These tests run against a real PostgreSQL server.
 	postgresUnreachableHint = "cannot reach postgresql, these tests need a running server: " +
@@ -150,10 +154,10 @@ func postgresDSN(searchPath string) string {
 	loadDatabaseEnv()
 
 	if dsn := strings.TrimSpace(os.Getenv("TEST_DATABASE_DSN")); dsn != "" {
-		return dsn + " search_path=" + searchPath
+		return withConnectTimeout(dsn + " search_path=" + searchPath)
 	}
 
-	return strings.Join([]string{
+	return withConnectTimeout(strings.Join([]string{
 		"host=" + testDatabaseSetting("HOST", "127.0.0.1"),
 		"port=" + testDatabaseSetting("PORT", "5432"),
 		"user=" + testDatabaseSetting("USERNAME", "postgres"),
@@ -162,7 +166,20 @@ func postgresDSN(searchPath string) string {
 		"sslmode=" + testDatabaseSetting("SSL_MODE", "disable"),
 		"TimeZone=" + testDatabaseSetting("TIMEZONE", "UTC"),
 		"search_path=" + searchPath,
-	}, " ")
+	}, " "))
+}
+
+// withConnectTimeout bounds how long a connection attempt may take. Without it a host
+// that silently drops packets, such as an address in 127.0.0.0/8 that nothing is bound
+// to, leaves the suite hanging on the TCP handshake until the whole `go test` run times
+// out. The bound turns that into a fast failure carrying postgresUnreachableHint. An
+// explicit connect_timeout in TEST_DATABASE_DSN is left alone.
+func withConnectTimeout(dsn string) string {
+	if strings.Contains(dsn, "connect_timeout") {
+		return dsn
+	}
+
+	return dsn + " connect_timeout=" + testDatabaseSetting("CONNECT_TIMEOUT", defaultConnectTimeoutSeconds)
 }
 
 // newPostgresDatabase opens a PostgreSQL connection confined to its own schema. The
@@ -643,6 +660,37 @@ func TestRepositoryReadCalculatesTotalWhenDisableCalculateTotalIsEmpty(t *testin
 
 	if res.NextPage {
 		t.Fatal("expected next page to be false when the page is not full")
+	}
+}
+
+// TestRepositoryReadCountsOnlyRowsMatchingTheSearch guards the pagination total against
+// the search predicate being dropped. The count used to run on a builder of its own,
+// which never received the predicate DataTable adds, so the total reported the size of
+// the whole table and the caller paged through a count it could never reach.
+func TestRepositoryReadCountsOnlyRowsMatchingTheSearch(t *testing.T) {
+	repo, _ := newPostgresRepository(t, true)
+
+	for _, name := range []string{"Andre", "Andrea", "Zelda"} {
+		if _, err := repo.Create(CreateData{Name: name}); err != nil {
+			t.Fatalf("failed to seed %s: %v", name, err)
+		}
+	}
+
+	res, err := repo.Read(context.Background(), ReadData{PaginatorRequest: entity.PaginatorRequest{
+		Page:   "1",
+		Limit:  "10",
+		Search: "andre",
+	}})
+	if err != nil {
+		t.Fatalf("expected read to succeed: %v", err)
+	}
+
+	if users := readUsers(t, res); len(users) != 2 {
+		t.Fatalf("expected the search to match 2 records, got %d", len(users))
+	}
+
+	if res.Total != 2 {
+		t.Fatalf("expected total to count only the 2 matching rows, got %d", res.Total)
 	}
 }
 

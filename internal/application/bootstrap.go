@@ -79,16 +79,17 @@ func Start() error {
 
 	if cfg.UseDatabase {
 		databaseConnection, err = database.New(&database.Database{
-			Connection: cfg.DatabaseConnection,
-			Host:       cfg.DatabaseHost,
-			Port:       cfg.DatabasePort,
-			Username:   cfg.DatabaseUsername,
-			Password:   cfg.DatabasePassword,
-			Name:       cfg.DatabaseName,
-			SSLMode:    cfg.DatabaseSSLMode,
-			ParseTime:  cfg.DatabaseParseTime,
-			Charset:    cfg.DatabaseCharset,
-			Timezone:   cfg.DatabaseTimezone,
+			Connection:     cfg.DatabaseConnection,
+			Host:           cfg.DatabaseHost,
+			Port:           cfg.DatabasePort,
+			Username:       cfg.DatabaseUsername,
+			Password:       cfg.DatabasePassword,
+			Name:           cfg.DatabaseName,
+			SSLMode:        cfg.DatabaseSSLMode,
+			ParseTime:      cfg.DatabaseParseTime,
+			Charset:        cfg.DatabaseCharset,
+			Timezone:       cfg.DatabaseTimezone,
+			ConnectTimeout: cfg.DatabaseConnectTimeout,
 		}, cfg.AppDebug)
 
 		if err != nil {

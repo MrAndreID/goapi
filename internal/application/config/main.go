@@ -21,17 +21,18 @@ type Config struct {
 	UseBodyDumpLog           bool `env:"USE_BODY_DUMP_LOG" envDefault:"false"`
 	BodyDumpLogRotationCount uint `env:"BODY_DUMP_LOG_ROTATION_COUNT" envDefault:"30"`
 
-	UseDatabase        bool   `env:"USE_DATABASE" envDefault:"false"`
-	DatabaseConnection string `env:"DATABASE_CONNECTION"`
-	DatabaseHost       string `env:"DATABASE_HOST"`
-	DatabasePort       string `env:"DATABASE_PORT"`
-	DatabaseUsername   string `env:"DATABASE_USERNAME"`
-	DatabasePassword   string `env:"DATABASE_PASSWORD"`
-	DatabaseName       string `env:"DATABASE_NAME"`
-	DatabaseSSLMode    string `env:"DATABASE_SSL_MODE" envDefault:"disable"`
-	DatabaseParseTime  string `env:"DATABASE_PARSE_TIME" envDefault:"True"`
-	DatabaseCharset    string `env:"DATABASE_CHARSET" envDefault:"utf8mb4"`
-	DatabaseTimezone   string `env:"DATABASE_TIMEZONE" envDefault:"Asia/Jakarta"`
+	UseDatabase            bool   `env:"USE_DATABASE" envDefault:"false"`
+	DatabaseConnection     string `env:"DATABASE_CONNECTION"`
+	DatabaseHost           string `env:"DATABASE_HOST"`
+	DatabasePort           string `env:"DATABASE_PORT"`
+	DatabaseUsername       string `env:"DATABASE_USERNAME"`
+	DatabasePassword       string `env:"DATABASE_PASSWORD"`
+	DatabaseName           string `env:"DATABASE_NAME"`
+	DatabaseSSLMode        string `env:"DATABASE_SSL_MODE" envDefault:"disable"`
+	DatabaseParseTime      string `env:"DATABASE_PARSE_TIME" envDefault:"True"`
+	DatabaseCharset        string `env:"DATABASE_CHARSET" envDefault:"utf8mb4"`
+	DatabaseTimezone       string `env:"DATABASE_TIMEZONE" envDefault:"Asia/Jakarta"`
+	DatabaseConnectTimeout string `env:"DATABASE_CONNECT_TIMEOUT" envDefault:"5"`
 
 	UseCache        bool   `env:"USE_CACHE" envDefault:"false"`
 	CacheConnection string `env:"CACHE_CONNECTION"`

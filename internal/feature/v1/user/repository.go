@@ -207,18 +207,13 @@ func (r *Repository) Read(ctx context.Context, req ReadData) (entity.PaginatorRe
 		}
 	}
 
-	countTotal := r.Database.WithContext(ctx).Model(&User{}).Preload("Emails")
-
 	queryBuilder := r.Database.WithContext(ctx).Model(&User{}).Preload("Emails")
 
 	if req.ID != "" {
-		countTotal.Where("id = ?", req.ID)
-
 		queryBuilder.Where("id = ?", req.ID)
 	}
 
 	gopackage.DataTable(
-		ctx,
 		queryBuilder,
 		search,
 		orderBy[req.OrderBy],
@@ -230,6 +225,8 @@ func (r *Repository) Read(ctx context.Context, req ReadData) (entity.PaginatorRe
 		req.Search,
 		false,
 	)
+
+	countTotal := queryBuilder.Session(&gorm.Session{}).Limit(-1).Offset(-1)
 
 	if err = queryBuilder.Find(&users).Error; err != nil {
 		logrus.WithFields(logrus.Fields{
