@@ -14,6 +14,7 @@ type Config struct {
 	AppVersion           string  `env:"APP_VERSION" envDefault:"v1.0.0"`
 	AppKey               string  `env:"APP_KEY,notEmpty"`
 	AppTimeout           int     `env:"APP_TIMEOUT" envDefault:"5"`
+	AppShutdownTimeout   int     `env:"APP_SHUTDOWN_TIMEOUT" envDefault:"10"`
 	AppRateLimit         float64 `env:"APP_RATE_LIMIT" envDefault:"10.0"`
 	AppRateLimitDeadline int     `env:"APP_RATE_LIMIT_DEADLINE" envDefault:"60"`
 

@@ -2,6 +2,9 @@
 .env
 .env.test
 
+# Kiro IDE workspace files (steering, hooks, specs, settings)
+.kiro/
+
 # Binaries for programs and plugins (remove the comment below to include it)
 *.exe
 *.exe~

@@ -1,6 +1,12 @@
 package application
 
 import (
+	"context"
+	"errors"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/MrAndreID/goapi/v2/internal/application/cache"
@@ -11,6 +17,7 @@ import (
 	objectStorage "github.com/MrAndreID/goapi/v2/internal/application/object_storage"
 	userV1 "github.com/MrAndreID/goapi/v2/internal/feature/v1/user"
 
+	"github.com/labstack/echo/v5"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
@@ -160,10 +167,6 @@ func Start() error {
 		}
 	}
 
-	if messageBrokerConnection != nil {
-		defer messageBrokerConnection.Close()
-	}
-
 	app := &Application{
 		Config:        cfg,
 		TimeLocation:  timeLocation,
@@ -173,11 +176,47 @@ func Start() error {
 		MessageBroker: messageBrokerConnection,
 	}
 
+	defer app.Close()
+
 	initService(app)
 
 	e := newServer(cfg)
 
 	RegisterRoutes(e, app)
 
-	return e.Start(":" + cfg.AppPort)
+	return run(e, cfg)
+}
+
+func run(e *echo.Echo, cfg *config.Config) error {
+	var tag string = "internal.application.bootstrap.run."
+
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+
+	defer stop()
+
+	startConfig := echo.StartConfig{
+		Address:         ":" + cfg.AppPort,
+		GracefulTimeout: time.Duration(cfg.AppShutdownTimeout) * time.Second,
+		OnShutdownError: func(err error) {
+			logrus.WithFields(logrus.Fields{
+				"tag":   tag + "01",
+				"error": err.Error(),
+			}).Error("failed to drain in flight requests within the shutdown timeout")
+		},
+	}
+
+	if err := startConfig.Start(ctx, e); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		logrus.WithFields(logrus.Fields{
+			"tag":   tag + "02",
+			"error": err.Error(),
+		}).Error("failed to serve http")
+
+		return err
+	}
+
+	logrus.WithFields(logrus.Fields{
+		"tag": tag + "03",
+	}).Info("server stopped, releasing connections")
+
+	return nil
 }
