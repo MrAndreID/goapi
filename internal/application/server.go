@@ -1,6 +1,7 @@
 package application
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"time"
@@ -26,30 +27,32 @@ func newServer(cfg *config.Config) *echo.Echo {
 
 	e.Use(middleware.Recover())
 
-	e.Use(middleware.BodyDump(func(c *echo.Context, requestBody, responseBody []byte, err error) {
-		request := struct {
-			Header any    `json:"header"`
-			Body   string `json:"body"`
-		}{
-			Header: c.Request().Header,
-			Body:   string(requestBody),
-		}
+	if cfg.UseBodyDumpLog {
+		e.Use(middleware.BodyDump(func(c *echo.Context, requestBody, responseBody []byte, err error) {
+			request := struct {
+				Header any    `json:"header"`
+				Body   string `json:"body"`
+			}{
+				Header: c.Request().Header,
+				Body:   string(requestBody),
+			}
 
-		response := struct {
-			Header any    `json:"header"`
-			Body   string `json:"body"`
-		}{
-			Header: c.Response().Header(),
-			Body:   string(responseBody),
-		}
+			response := struct {
+				Header any    `json:"header"`
+				Body   string `json:"body"`
+			}{
+				Header: c.Response().Header(),
+				Body:   string(responseBody),
+			}
 
-		logrus.WithFields(logrus.Fields{
-			"request":   request,
-			"requestId": c.Get("RequestID"),
-			"response":  response,
-			"url":       c.Request().Host + c.Request().URL.String(),
-		}).Info("body dump")
-	}))
+			logrus.WithFields(logrus.Fields{
+				"request":   request,
+				"requestId": c.Get("RequestID"),
+				"response":  response,
+				"url":       c.Request().Host + c.Request().URL.String(),
+			}).Info("body dump")
+		}))
+	}
 
 	secureMiddleware := middleware.SecureConfig{
 		XSSProtection:         "1; mode=block",
@@ -81,7 +84,11 @@ func newServer(cfg *config.Config) *echo.Echo {
 	e.Use(middleware.ContextTimeoutWithConfig(middleware.ContextTimeoutConfig{
 		Timeout: time.Duration(cfg.AppTimeout) * time.Second,
 		ErrorHandler: func(c *echo.Context, err error) error {
-			return errors.New("REQUEST_TIMEOUT")
+			if errors.Is(err, context.DeadlineExceeded) {
+				return echo.NewHTTPError(http.StatusRequestTimeout, "REQUEST_TIMEOUT")
+			}
+
+			return err
 		},
 	}))
 
@@ -90,10 +97,10 @@ func newServer(cfg *config.Config) *echo.Echo {
 			middleware.RateLimiterMemoryStoreConfig{Rate: cfg.AppRateLimit, Burst: int(cfg.AppRateLimit), ExpiresIn: time.Duration(cfg.AppRateLimitDeadline) * time.Second},
 		),
 		ErrorHandler: func(c *echo.Context, err error) error {
-			return errors.New("FORBIDDEN")
+			return echo.NewHTTPError(http.StatusForbidden, "FORBIDDEN")
 		},
 		DenyHandler: func(c *echo.Context, identifier string, err error) error {
-			return errors.New("TOO_MANY_REQUESTS")
+			return echo.NewHTTPError(http.StatusTooManyRequests, "TOO_MANY_REQUESTS")
 		},
 	}
 
