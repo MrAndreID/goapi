@@ -1,6 +1,8 @@
 package config
 
 import (
+	"os"
+
 	"github.com/caarlos0/env/v11"
 	"github.com/joho/godotenv"
 	"github.com/sirupsen/logrus"
@@ -69,18 +71,27 @@ func New() (*Config, error) {
 
 	logrus.SetFormatter(&logrus.JSONFormatter{})
 
-	if err := godotenv.Load(); err != nil {
+	if _, err := os.Stat(".env"); err == nil {
+		if err := godotenv.Load(); err != nil {
+			logrus.WithFields(logrus.Fields{
+				"tag":   tag + "01",
+				"error": err.Error(),
+			}).Error("failed to load environment file")
+
+			return &cfg, err
+		}
+	} else if !os.IsNotExist(err) {
 		logrus.WithFields(logrus.Fields{
-			"tag":   tag + "01",
+			"tag":   tag + "02",
 			"error": err.Error(),
-		}).Error("failed to load environment file")
+		}).Error("failed to check environment file")
 
 		return &cfg, err
 	}
 
 	if err := env.Parse(&cfg); err != nil {
 		logrus.WithFields(logrus.Fields{
-			"tag":   tag + "02",
+			"tag":   tag + "03",
 			"error": err.Error(),
 		}).Error("failed to parse environment")
 
@@ -90,7 +101,7 @@ func New() (*Config, error) {
 	if cfg.UseBodyDumpLog {
 		if err := NewBodyDumpLog(cfg.BodyDumpLogRotationCount); err != nil {
 			logrus.WithFields(logrus.Fields{
-				"tag":   tag + "03",
+				"tag":   tag + "04",
 				"error": err.Error(),
 			}).Error("failed to initiate a body dump for log")
 

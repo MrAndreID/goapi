@@ -15,7 +15,9 @@ import (
 	"github.com/MrAndreID/goapi/v2/internal/application/dependency"
 	messageBroker "github.com/MrAndreID/goapi/v2/internal/application/message_broker"
 	objectStorage "github.com/MrAndreID/goapi/v2/internal/application/object_storage"
+	"github.com/MrAndreID/goapi/v2/internal/feature/health"
 	userV1 "github.com/MrAndreID/goapi/v2/internal/feature/v1/user"
+	"github.com/MrAndreID/goapi/v2/internal/feature/version"
 
 	"github.com/labstack/echo/v5"
 	"github.com/sirupsen/logrus"
@@ -23,10 +25,14 @@ import (
 )
 
 var (
-	UserV1Service *userV1.Service
+	HealthService  *health.Service
+	VersionService *version.Service
+	UserV1Service  *userV1.Service
 )
 
 func initService(app *Application) {
+	HealthService = health.NewService(health.NewRepository(app.Database, app.Cache, app.MessageBroker, app.ObjectStorage))
+	VersionService = version.NewService(app.Config.AppName, app.Config.AppVersion)
 	UserV1Service = userV1.NewService(userV1.NewRepository(app.TimeLocation, app.Database))
 }
 

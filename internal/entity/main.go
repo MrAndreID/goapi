@@ -2,7 +2,9 @@ package entity
 
 import (
 	"errors"
+	"net/http"
 	"regexp"
+	"strings"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
@@ -17,15 +19,45 @@ type PaginatorRequest struct {
 }
 
 type PaginatorResponse struct {
-	Records  any   `json:"records"`
-	Total    int64 `json:"total"`
-	NextPage bool  `json:"nextPage"`
+	Records any    `json:"-"`
+	Total   *int64 `json:"total"`
+	Page    int    `json:"page"`
+	Limit   int    `json:"limit"`
 }
 
 type MainResponse struct {
-	Code        string `json:"code"`
-	Description string `json:"description"`
-	Data        any    `json:"data"`
+	Code    int    `json:"-"`
+	Status  bool   `json:"status"`
+	Message string `json:"message"`
+	Data    any    `json:"data"`
+	Meta    any    `json:"meta"`
+	Error   any    `json:"error"`
+}
+
+func (mr MainResponse) JSON() (int, MainResponse) {
+	if mr.Code == 0 {
+		mr.Code = http.StatusNotFound
+
+		mr.Message = "STATUS_CODE_NOT_FOUND"
+
+		mr.Data = nil
+
+		mr.Meta = nil
+
+		mr.Error = []string{
+			"status code not found",
+		}
+	}
+
+	if !(mr.Code >= 400 && mr.Code < 600) {
+		mr.Status = true
+	}
+
+	if mr.Message == "" {
+		mr.Message = strings.ToUpper(strings.ReplaceAll(http.StatusText(mr.Code), " ", "_"))
+	}
+
+	return mr.Code, mr
 }
 
 func BlacklistValidation(field string) validation.RuleFunc {
@@ -33,7 +65,7 @@ func BlacklistValidation(field string) validation.RuleFunc {
 		val, ok := value.(string)
 
 		if !ok {
-			return errors.New("the " + field + " is not a string")
+			return errors.New("must be a valid string")
 		}
 
 		if val == "" {
@@ -43,7 +75,7 @@ func BlacklistValidation(field string) validation.RuleFunc {
 		match, _ := regexp.MatchString(`^[^'"\[\]<>\{\}]+$`, val)
 
 		if !match {
-			return errors.New("the " + field + " contains unsafe characters")
+			return errors.New("must contains safe characters")
 		}
 
 		return nil

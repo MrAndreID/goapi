@@ -25,46 +25,68 @@ func (app *Application) Close() {
 	var tag string = "internal.application.main.Close."
 
 	if app.MessageBroker != nil {
-		app.MessageBroker.Close()
+		safeClose("message broker", func() {
+			app.MessageBroker.Close()
+		})
 	}
 
 	if app.Cache != nil {
 		if app.Cache.Redis != nil {
-			if err := app.Cache.Redis.Close(); err != nil {
-				logrus.WithFields(logrus.Fields{
-					"tag":   tag + "01",
-					"error": err.Error(),
-				}).Error("failed to close redis cache")
-			}
+			safeClose("redis cache", func() {
+				if err := app.Cache.Redis.Close(); err != nil {
+					logrus.WithFields(logrus.Fields{
+						"tag":   tag + "01",
+						"error": err.Error(),
+					}).Error("failed to close redis cache")
+				}
+			})
 		}
 
 		if app.Cache.Memcached != nil {
-			if err := app.Cache.Memcached.Close(); err != nil {
-				logrus.WithFields(logrus.Fields{
-					"tag":   tag + "02",
-					"error": err.Error(),
-				}).Error("failed to close memcached")
-			}
+			safeClose("memcached", func() {
+				if err := app.Cache.Memcached.Close(); err != nil {
+					logrus.WithFields(logrus.Fields{
+						"tag":   tag + "02",
+						"error": err.Error(),
+					}).Error("failed to close memcached")
+				}
+			})
 		}
 	}
 
 	if app.Database != nil {
-		databaseConnection, err := app.Database.DB()
+		safeClose("database", func() {
+			databaseConnection, err := app.Database.DB()
 
-		if err != nil {
-			logrus.WithFields(logrus.Fields{
-				"tag":   tag + "03",
-				"error": err.Error(),
-			}).Error("failed to get the underlying database connection")
+			if err != nil {
+				logrus.WithFields(logrus.Fields{
+					"tag":   tag + "03",
+					"error": err.Error(),
+				}).Error("failed to get the underlying database connection")
 
-			return
-		}
+				return
+			}
 
-		if err := databaseConnection.Close(); err != nil {
-			logrus.WithFields(logrus.Fields{
-				"tag":   tag + "04",
-				"error": err.Error(),
-			}).Error("failed to close database")
-		}
+			if err := databaseConnection.Close(); err != nil {
+				logrus.WithFields(logrus.Fields{
+					"tag":   tag + "04",
+					"error": err.Error(),
+				}).Error("failed to close database")
+			}
+		})
 	}
+}
+
+func safeClose(resource string, fn func()) {
+	defer func() {
+		if r := recover(); r != nil {
+			logrus.WithFields(logrus.Fields{
+				"tag":      "internal.application.main.safeClose.01",
+				"resource": resource,
+				"error":    r,
+			}).Error("recovered from panic while closing a connection")
+		}
+	}()
+
+	fn()
 }

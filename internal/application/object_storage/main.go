@@ -52,10 +52,7 @@ func New(objectStorage *ObjectStorage) (*ObjectStorageConnection, error) {
 }
 
 func (objectStorage *ObjectStorage) Minio() (*ObjectStorageConnection, error) {
-	var (
-		tag       string = "internal.application.objectstorage.main.Minio."
-		keyBucket string = "ping"
-	)
+	var tag string = "internal.application.objectstorage.main.Minio."
 
 	minioClient, err := minio.New(objectStorage.Host+":"+objectStorage.Port, &minio.Options{
 		Creds:  credentials.NewStaticV4(objectStorage.Username, objectStorage.Password, ""),
@@ -71,7 +68,7 @@ func (objectStorage *ObjectStorage) Minio() (*ObjectStorageConnection, error) {
 		return nil, err
 	}
 
-	_, err = minioClient.BucketExists(context.Background(), keyBucket)
+	_, err = minioClient.ListBuckets(context.Background())
 	if err != nil {
 		logrus.WithFields(logrus.Fields{
 			"tag":   tag + "02",

@@ -21,7 +21,7 @@ The `MrAndreID/GoAPI` is a skeleton uses the Go Programming Language (GoLang) wi
 ## Requirements
 
 To use The `MrAndreID/GoAPI`, you must ensure that you meet the following requirements:
-- [Go](https://golang.org/) >= 1.26
+- [Go](https://golang.org/) >= 1.27
 
 ## Installation
 
@@ -100,10 +100,15 @@ To use The `MrAndreID/GoAPI`, you must ensure that you meet the following requir
 | `internal/application/message_broker`      | Configuration for Message Broker                          |
 | `internal/application/object_storage`      | Configuration for Object Storage                          |
 | `internal/entity`                          | Shared Struct Data                                        |
+| `internal/feature/health`                  | Health Feature (Public `GET /health` Probe)               |
+| `internal/feature/health/test`             | Unit Test for Health Feature                              |
+| `internal/feature/version`                 | Version Feature (Public `GET /version`)                   |
+| `internal/feature/version/test`            | Unit Test for Version Feature                             |
 | `internal/feature/v1/user`                 | User Feature                                              |
 | `internal/feature/v1/user/test`            | Unit Test for User Feature                                |
 | `storage`                                  | Folder for Add Maintenance Flag File                      |
 | `storage/log`                              | Folder for Log File                                       |
+| `openapi.yaml`                             | OpenAPI 3.1 Specification (Hand-Written API Contract)     |
 
 - Run The `MrAndreID/GoAPI`
 ```go

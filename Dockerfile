@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM --platform=${BUILDPLATFORM} golang:1.26-alpine3.24 AS builder
+FROM --platform=${BUILDPLATFORM} golang:1.27-alpine3.24 AS builder
 
 ENV CGO_ENABLED=0 \
     GOTOOLCHAIN=local \

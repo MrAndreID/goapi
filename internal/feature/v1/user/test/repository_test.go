@@ -429,8 +429,8 @@ func TestRepositoryCreateReadUpdateDelete(t *testing.T) {
 		t.Fatalf("expected read to succeed: %v", err)
 	}
 
-	if readResponse.Total != 1 {
-		t.Fatalf("expected total to be 1 for the created record, got %d", readResponse.Total)
+	if readResponse.Total == nil || *readResponse.Total != 1 {
+		t.Fatalf("expected total to be 1 for the created record, got %v", readResponse.Total)
 	}
 
 	if records := readUsers(t, readResponse); len(records) != 1 {
@@ -557,7 +557,7 @@ func TestRepositoryDeleteReturnsErrorWhenDeletingEmailsReturnsZeroRows(t *testin
 	}
 }
 
-func TestRepositoryUpdateReturnsErrorWhenNoEmailsAndNoEmailRowsExist(t *testing.T) {
+func TestRepositoryUpdateSucceedsWhenNoEmailsAndNoEmailRowsExist(t *testing.T) {
 	repo, _ := newPostgresRepository(t, true)
 
 	createdUser, err := repo.Create(CreateData{Name: "Andre"})
@@ -566,8 +566,8 @@ func TestRepositoryUpdateReturnsErrorWhenNoEmailsAndNoEmailRowsExist(t *testing.
 	}
 
 	err = repo.Update(UpdateData{ID: createdUser.ID, Name: "Andre Updated"})
-	if err == nil || err.Error() != "FAILED_TO_READ_EMAIL_DATA" {
-		t.Fatalf("expected FAILED_TO_READ_EMAIL_DATA, got %v", err)
+	if err != nil {
+		t.Fatalf("expected update to succeed for a user with no emails, got %v", err)
 	}
 }
 
@@ -654,12 +654,16 @@ func TestRepositoryReadCalculatesTotalWhenDisableCalculateTotalIsEmpty(t *testin
 		t.Fatalf("expected read to succeed with an empty disableCalculateTotal, got %v", err)
 	}
 
-	if res.Total != 1 {
-		t.Fatalf("expected total to be 1, got %d", res.Total)
+	if res.Total == nil || *res.Total != 1 {
+		t.Fatalf("expected total to be 1, got %v", res.Total)
 	}
 
-	if res.NextPage {
-		t.Fatal("expected next page to be false when the page is not full")
+	if res.Page != 1 {
+		t.Fatalf("expected page to be 1, got %d", res.Page)
+	}
+
+	if res.Limit != 10 {
+		t.Fatalf("expected limit to be 10, got %d", res.Limit)
 	}
 }
 
@@ -689,12 +693,12 @@ func TestRepositoryReadCountsOnlyRowsMatchingTheSearch(t *testing.T) {
 		t.Fatalf("expected the search to match 2 records, got %d", len(users))
 	}
 
-	if res.Total != 2 {
-		t.Fatalf("expected total to count only the 2 matching rows, got %d", res.Total)
+	if res.Total == nil || *res.Total != 2 {
+		t.Fatalf("expected total to count only the 2 matching rows, got %v", res.Total)
 	}
 }
 
-func TestRepositoryReadFlagsNextPageWhenRecordsFillTheLimit(t *testing.T) {
+func TestRepositoryReadEchoesRequestedPageAndLimit(t *testing.T) {
 	repo, _ := newPostgresRepository(t, true)
 
 	for i := 0; i < 10; i++ {
@@ -704,8 +708,8 @@ func TestRepositoryReadFlagsNextPageWhenRecordsFillTheLimit(t *testing.T) {
 	}
 
 	res, err := repo.Read(context.Background(), ReadData{PaginatorRequest: entity.PaginatorRequest{
-		Page:                  "1",
-		Limit:                 "10",
+		Page:                  "2",
+		Limit:                 "5",
 		OrderBy:               "name",
 		SortBy:                "asc",
 		Search:                "user",
@@ -715,12 +719,51 @@ func TestRepositoryReadFlagsNextPageWhenRecordsFillTheLimit(t *testing.T) {
 		t.Fatalf("expected read to succeed: %v", err)
 	}
 
-	if !res.NextPage {
-		t.Fatal("expected next page to be flagged when the page is full")
+	if res.Total == nil || *res.Total != 10 {
+		t.Fatalf("expected total to be 10, got %v", res.Total)
 	}
 
-	if res.Total != 10 {
-		t.Fatalf("expected total to be 10, got %d", res.Total)
+	if res.Page != 2 {
+		t.Fatalf("expected page to echo the request, got %d", res.Page)
+	}
+
+	if res.Limit != 5 {
+		t.Fatalf("expected limit to echo the request, got %d", res.Limit)
+	}
+}
+
+// TestRepositoryReadDefaultsPageAndLimitWhenOmitted guards the reliance on DataTable
+// mutating the limit variable. With page and limit omitted the query still applies the
+// defaults of page 1 and page size 10, so the reported Page and Limit must reflect those
+// effective values rather than the zero request. Before the fix the effective limit read
+// as 0.
+func TestRepositoryReadDefaultsPageAndLimitWhenOmitted(t *testing.T) {
+	repo, _ := newPostgresRepository(t, true)
+
+	for i := 0; i < 3; i++ {
+		if _, err := repo.Create(CreateData{Name: fmt.Sprintf("User %02d", i)}); err != nil {
+			t.Fatalf("failed to seed user %d: %v", i, err)
+		}
+	}
+
+	res, err := repo.Read(context.Background(), ReadData{PaginatorRequest: entity.PaginatorRequest{
+		OrderBy: "name",
+		SortBy:  "asc",
+	}})
+	if err != nil {
+		t.Fatalf("expected read to succeed: %v", err)
+	}
+
+	if users := readUsers(t, res); len(users) != 3 {
+		t.Fatalf("expected all 3 seeded records, got %d", len(users))
+	}
+
+	if res.Page != 1 {
+		t.Fatalf("expected page to default to 1, got %d", res.Page)
+	}
+
+	if res.Limit != 10 {
+		t.Fatalf("expected limit to default to 10, got %d", res.Limit)
 	}
 }
 
@@ -740,8 +783,8 @@ func TestRepositoryReadSkipsTotalWhenDisableCalculateTotalIsTrue(t *testing.T) {
 		t.Fatalf("expected read to succeed: %v", err)
 	}
 
-	if res.Total != 0 {
-		t.Fatalf("expected total to be skipped, got %d", res.Total)
+	if res.Total != nil {
+		t.Fatalf("expected total to be nil when the count is skipped, got %d", *res.Total)
 	}
 }
 
@@ -935,5 +978,22 @@ func TestRepositoryDeleteReturnsErrorWhenDeletingEmailAffectsNoRows(t *testing.T
 	err = repo.Delete(DeleteData{ID: createdUser.ID})
 	if err == nil || err.Error() != "FAILED_TO_DELETE_EMAIL_DATA" {
 		t.Fatalf("expected FAILED_TO_DELETE_EMAIL_DATA, got %v", err)
+	}
+}
+
+func TestRepositoryUpdateReturnsErrorWhenReadingEmailsFails(t *testing.T) {
+	repo, db := newPostgresRepository(t, true)
+
+	createdUser, err := repo.Create(CreateData{Name: "Andre"})
+	if err != nil {
+		t.Fatalf("expected create to succeed: %v", err)
+	}
+
+	// Drop the emails table so the no-new-emails branch of Update fails while
+	// loading the existing rows, exercising the readEmail.Error path.
+	mustExec(t, db, "DROP TABLE emails")
+
+	if err := repo.Update(UpdateData{ID: createdUser.ID, Name: "Andre Updated"}); err == nil {
+		t.Fatal("expected update to fail when reading existing emails errors")
 	}
 }

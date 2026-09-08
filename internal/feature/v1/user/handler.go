@@ -1,9 +1,7 @@
 package user
 
 import (
-	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/MrAndreID/goapi/v2/internal/entity"
 
@@ -29,6 +27,18 @@ func NewHandler(e *echo.Group, service InterfaceService) *handler {
 	return handler
 }
 
+func respondError(err error) (int, entity.MainResponse) {
+	status := StatusFor(err)
+
+	response := entity.MainResponse{Code: status}
+
+	if status < http.StatusInternalServerError {
+		response.Error = []any{err.Error()}
+	}
+
+	return response.JSON()
+}
+
 func (h *handler) Create(c *echo.Context) error {
 	var (
 		tag string = "internal.feature.v1.user.handler.Create."
@@ -41,11 +51,10 @@ func (h *handler) Create(c *echo.Context) error {
 			"error": err.(*echo.HTTPError).Message,
 		}).Error("invalid request data")
 
-		return c.JSON(http.StatusBadRequest, entity.MainResponse{
-			Code:        fmt.Sprintf("%04d", http.StatusBadRequest),
-			Description: strings.ToUpper(strings.ReplaceAll(http.StatusText(http.StatusBadRequest), " ", "_")),
-			Data:        err.(*echo.HTTPError).Message,
-		})
+		return c.JSON(entity.MainResponse{
+			Code:  http.StatusBadRequest,
+			Error: gopackage.ParseValidationErrors(err),
+		}.JSON())
 	}
 
 	user, err := h.Service.Create(c.Request().Context(), req)
@@ -56,17 +65,13 @@ func (h *handler) Create(c *echo.Context) error {
 			"error": err.Error(),
 		}).Error("failed to create user (from user service)")
 
-		return c.JSON(http.StatusInternalServerError, entity.MainResponse{
-			Code:        fmt.Sprintf("%04d", http.StatusInternalServerError),
-			Description: strings.ToUpper(strings.ReplaceAll(http.StatusText(http.StatusInternalServerError), " ", "_")),
-		})
+		return c.JSON(respondError(err))
 	}
 
-	return c.JSON(http.StatusCreated, entity.MainResponse{
-		Code:        fmt.Sprintf("%04d", http.StatusCreated),
-		Description: strings.ToUpper(strings.ReplaceAll(http.StatusText(http.StatusCreated), " ", "_")),
-		Data:        user,
-	})
+	return c.JSON(entity.MainResponse{
+		Code: http.StatusCreated,
+		Data: user,
+	}.JSON())
 }
 
 func (h *handler) Read(c *echo.Context) error {
@@ -81,11 +86,10 @@ func (h *handler) Read(c *echo.Context) error {
 			"error": err.(*echo.HTTPError).Message,
 		}).Error("invalid request data")
 
-		return c.JSON(http.StatusBadRequest, entity.MainResponse{
-			Code:        fmt.Sprintf("%04d", http.StatusBadRequest),
-			Description: strings.ToUpper(strings.ReplaceAll(http.StatusText(http.StatusBadRequest), " ", "_")),
-			Data:        err.(*echo.HTTPError).Message,
-		})
+		return c.JSON(entity.MainResponse{
+			Code:  http.StatusBadRequest,
+			Error: gopackage.ParseValidationErrors(err),
+		}.JSON())
 	}
 
 	userData, err := h.Service.Read(c.Request().Context(), req)
@@ -96,17 +100,14 @@ func (h *handler) Read(c *echo.Context) error {
 			"error": err.Error(),
 		}).Error("failed to get user (from user service)")
 
-		return c.JSON(http.StatusInternalServerError, entity.MainResponse{
-			Code:        fmt.Sprintf("%04d", http.StatusInternalServerError),
-			Description: strings.ToUpper(strings.ReplaceAll(http.StatusText(http.StatusInternalServerError), " ", "_")),
-		})
+		return c.JSON(respondError(err))
 	}
 
-	return c.JSON(http.StatusOK, entity.MainResponse{
-		Code:        fmt.Sprintf("%04d", http.StatusOK),
-		Description: "SUCCESS",
-		Data:        userData,
-	})
+	return c.JSON(entity.MainResponse{
+		Code: http.StatusOK,
+		Data: userData.Records,
+		Meta: userData,
+	}.JSON())
 }
 
 func (h *handler) Update(c *echo.Context) error {
@@ -121,11 +122,10 @@ func (h *handler) Update(c *echo.Context) error {
 			"error": err.(*echo.HTTPError).Message,
 		}).Error("invalid request data")
 
-		return c.JSON(http.StatusBadRequest, entity.MainResponse{
-			Code:        fmt.Sprintf("%04d", http.StatusBadRequest),
-			Description: strings.ToUpper(strings.ReplaceAll(http.StatusText(http.StatusBadRequest), " ", "_")),
-			Data:        err.(*echo.HTTPError).Message,
-		})
+		return c.JSON(entity.MainResponse{
+			Code:  http.StatusBadRequest,
+			Error: gopackage.ParseValidationErrors(err),
+		}.JSON())
 	}
 
 	err := h.Service.Update(c.Request().Context(), req)
@@ -136,16 +136,12 @@ func (h *handler) Update(c *echo.Context) error {
 			"error": err.Error(),
 		}).Error("failed to update user (from user service)")
 
-		return c.JSON(http.StatusInternalServerError, entity.MainResponse{
-			Code:        fmt.Sprintf("%04d", http.StatusInternalServerError),
-			Description: strings.ToUpper(strings.ReplaceAll(http.StatusText(http.StatusInternalServerError), " ", "_")),
-		})
+		return c.JSON(respondError(err))
 	}
 
-	return c.JSON(http.StatusOK, entity.MainResponse{
-		Code:        fmt.Sprintf("%04d", http.StatusOK),
-		Description: "SUCCESS",
-	})
+	return c.JSON(entity.MainResponse{
+		Code: http.StatusOK,
+	}.JSON())
 }
 
 func (h *handler) Delete(c *echo.Context) error {
@@ -160,11 +156,10 @@ func (h *handler) Delete(c *echo.Context) error {
 			"error": err.(*echo.HTTPError).Message,
 		}).Error("invalid request data")
 
-		return c.JSON(http.StatusBadRequest, entity.MainResponse{
-			Code:        fmt.Sprintf("%04d", http.StatusBadRequest),
-			Description: strings.ToUpper(strings.ReplaceAll(http.StatusText(http.StatusBadRequest), " ", "_")),
-			Data:        err.(*echo.HTTPError).Message,
-		})
+		return c.JSON(entity.MainResponse{
+			Code:  http.StatusBadRequest,
+			Error: gopackage.ParseValidationErrors(err),
+		}.JSON())
 	}
 
 	if err := h.Service.Delete(c.Request().Context(), req); err != nil {
@@ -173,14 +168,10 @@ func (h *handler) Delete(c *echo.Context) error {
 			"error": err.Error(),
 		}).Error("failed to delete user (from user service)")
 
-		return c.JSON(http.StatusInternalServerError, entity.MainResponse{
-			Code:        fmt.Sprintf("%04d", http.StatusInternalServerError),
-			Description: strings.ToUpper(strings.ReplaceAll(http.StatusText(http.StatusInternalServerError), " ", "_")),
-		})
+		return c.JSON(respondError(err))
 	}
 
-	return c.JSON(http.StatusOK, entity.MainResponse{
-		Code:        fmt.Sprintf("%04d", http.StatusOK),
-		Description: "SUCCESS",
-	})
+	return c.JSON(entity.MainResponse{
+		Code: http.StatusOK,
+	}.JSON())
 }

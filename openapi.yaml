@@ -1,0 +1,519 @@
+openapi: 3.1.0
+
+info:
+  title: MrAndreID / Go Application Programming Interface (API)
+  description: >
+    Kontrak API untuk skeleton MrAndreID/GoAPI. Spesifikasi ini ditulis tangan dan
+    harus dijaga sinkron dengan kode secara manual (skeleton tidak memakai generator
+    anotasi). Setiap response dibungkus MainResponse. Route bisnis berada di bawah
+    /api/v{n} dan membutuhkan header X-App-Key; /health dan /version bersifat publik.
+  version: v2.1.0
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:10001
+    description: Server pengembangan lokal (APP_PORT default 10001)
+
+tags:
+  - name: public
+    description: Endpoint publik tanpa application key
+  - name: user
+    description: CRUD user (butuh X-App-Key)
+
+paths:
+  /health:
+    get:
+      tags: [public]
+      summary: Health check
+      description: >
+        Memeriksa seluruh infrastruktur yang aktif secara berurutan: database, cache,
+        message broker, dan object storage. Tiap infrastruktur hanya dicek bila
+        USE_*=true; koneksi yang nil (tidak dipakai) dianggap sehat. 200 bila semua
+        sehat; 503 bila salah satu gagal. Response 503 tidak membedakan komponen mana
+        yang jatuh (detail hanya di log server), selalu membawa sentinel generik
+        SERVICE_UNHEALTHY.
+      security: []
+      responses:
+        "200":
+          description: Sehat
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MainResponse"
+              example:
+                status: true
+                message: OK
+                data: null
+                meta: null
+                error: null
+        "503":
+          description: Salah satu infrastruktur aktif tidak sehat
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MainResponse"
+              example:
+                status: false
+                message: SERVICE_UNAVAILABLE
+                data: null
+                meta: null
+                error: ["SERVICE_UNHEALTHY"]
+
+  /version:
+    get:
+      tags: [public]
+      summary: Info versi aplikasi
+      description: Mengembalikan AppName dan AppVersion dari konfigurasi.
+      security: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/MainResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/VersionInfo"
+              example:
+                status: true
+                message: OK
+                data:
+                  name: GoAPI
+                  version: v2.1.0
+                meta: null
+                error: null
+
+  /api/v1/user:
+    post:
+      tags: [user]
+      summary: Buat user beserta email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateData"
+      responses:
+        "201":
+          description: User dibuat
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/MainResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/User"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/AppKeyError"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/DuplicateEmail"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    get:
+      tags: [user]
+      summary: Daftar user (berpaginasi)
+      description: >
+        Data records ada di `data`, metadata paginator ada di `meta`. `meta.total`
+        bernilai null bila disableCalculateTotal=true (total sengaja tidak dihitung).
+      parameters:
+        - name: page
+          in: query
+          schema: { type: string }
+          description: Nomor halaman (digit). Default efektif 1.
+        - name: limit
+          in: query
+          schema: { type: string }
+          description: Ukuran halaman (digit). Default efektif 10.
+        - name: orderBy
+          in: query
+          schema:
+            type: string
+            enum: [id, name, createdAt, updatedAt]
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+        - name: search
+          in: query
+          schema: { type: string }
+          description: Pencarian pada kolom name. Karakter ' " [ ] < > { } ditolak.
+        - name: disableCalculateTotal
+          in: query
+          schema:
+            type: string
+            enum: ["true", "false"]
+        - name: id
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/MainResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/User"
+                      meta:
+                        $ref: "#/components/schemas/PaginatorMeta"
+              example:
+                status: true
+                message: OK
+                data:
+                  - id: 3f2504e0-4f89-41d3-9a0c-0305e82c3301
+                    createdAt: "2026-01-02T10:00:00+07:00"
+                    updatedAt: "2026-01-02T10:00:00+07:00"
+                    deletedAt: null
+                    name: Andre
+                    emails:
+                      - id: 8b1c9e2a-1234-4d5e-9f01-abcdef012345
+                        createdAt: "2026-01-02T10:00:00+07:00"
+                        updatedAt: "2026-01-02T10:00:00+07:00"
+                        deletedAt: null
+                        userId: 3f2504e0-4f89-41d3-9a0c-0305e82c3301
+                        email: andre@gmail.com
+                meta:
+                  total: 1
+                  page: 1
+                  limit: 10
+                error: null
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/AppKeyError"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /api/v1/user/{id}:
+    patch:
+      tags: [user]
+      summary: Perbarui user
+      description: >
+        Field name dan emails opsional. Bila emails diisi, seluruh email lama diganti
+        dengan yang baru.
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateData"
+      responses:
+        "200":
+          description: User diperbarui
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MainResponse"
+              example:
+                status: true
+                message: OK
+                data: null
+                meta: null
+                error: null
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/AppKeyError"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/UserNotFound"
+        "409":
+          $ref: "#/components/responses/DuplicateEmail"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    delete:
+      tags: [user]
+      summary: Hapus user (soft delete)
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+      responses:
+        "200":
+          description: User dihapus
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MainResponse"
+              example:
+                status: true
+                message: OK
+                data: null
+                meta: null
+                error: null
+        "401":
+          $ref: "#/components/responses/AppKeyError"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/UserNotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+components:
+  securitySchemes:
+    AppKey:
+      type: apiKey
+      in: header
+      name: X-App-Key
+      description: Application key untuk route di bawah /api/v{n}.
+
+  parameters:
+    UserId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  schemas:
+    MainResponse:
+      type: object
+      description: >
+        Amplop response standar. Field `code` internal tidak diserialisasi. `status`
+        dan `message` diturunkan dari code bila tidak diisi.
+      required: [status, message, data, meta, error]
+      properties:
+        status:
+          type: boolean
+          description: true bila code di luar 400-599.
+        message:
+          type: string
+          description: SCREAMING_SNAKE_CASE, mis. OK, CREATED, BAD_REQUEST.
+        data:
+          description: Payload sukses, bisa objek, array, atau null.
+        meta:
+          description: Metadata tambahan seperti paginator, atau null.
+        error:
+          description: Detail kegagalan (array string sentinel atau daftar error validasi), null bila sukses.
+          type: [array, "null"]
+          items: {}
+
+    VersionInfo:
+      type: object
+      required: [name, version]
+      properties:
+        name:
+          type: string
+          example: GoAPI
+        version:
+          type: string
+          example: v2.1.0
+
+    PaginatorMeta:
+      type: object
+      description: >
+        Metadata pagination di field meta. total bertipe nullable: null saat
+        disableCalculateTotal=true.
+      required: [total, page, limit]
+      properties:
+        total:
+          type: [integer, "null"]
+          format: int64
+          example: 1
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 10
+
+    Email:
+      type: object
+      required: [id, createdAt, updatedAt, userId, email]
+      properties:
+        id:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        deletedAt:
+          type: [string, "null"]
+          format: date-time
+        userId:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+
+    User:
+      type: object
+      required: [id, createdAt, updatedAt, name, emails]
+      properties:
+        id:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        deletedAt:
+          type: [string, "null"]
+          format: date-time
+        name:
+          type: string
+        emails:
+          type: array
+          items:
+            $ref: "#/components/schemas/Email"
+
+    CreateData:
+      type: object
+      required: [name, emails]
+      properties:
+        name:
+          type: string
+          description: Wajib. Karakter ' " [ ] < > { } ditolak.
+          example: Andre
+        emails:
+          type: array
+          description: Wajib, tiap elemen harus email valid.
+          items:
+            type: string
+            format: email
+          example: ["andre@gmail.com"]
+
+    UpdateData:
+      type: object
+      description: Kedua field opsional.
+      properties:
+        name:
+          type: string
+          example: Andre Updated
+        emails:
+          type: array
+          items:
+            type: string
+            format: email
+          example: ["andre.updated@gmail.com"]
+
+  responses:
+    ValidationError:
+      description: Data request tidak valid
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/MainResponse"
+          example:
+            status: false
+            message: BAD_REQUEST
+            data: null
+            meta: null
+            error:
+              - field: emails
+                message: must be a valid email
+
+    DuplicateEmail:
+      description: Email duplikat dalam request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/MainResponse"
+          example:
+            status: false
+            message: CONFLICT
+            data: null
+            meta: null
+            error: ["DUPLICATE_EMAIL"]
+
+    UserNotFound:
+      description: User tidak ditemukan
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/MainResponse"
+          example:
+            status: false
+            message: NOT_FOUND
+            data: null
+            meta: null
+            error: ["FAILED_TO_READ_USER_DATA"]
+
+    AppKeyError:
+      description: Application key tidak valid atau hilang
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/MainResponse"
+
+    Forbidden:
+      description: Akses ditolak
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/MainResponse"
+          example:
+            status: false
+            message: FORBIDDEN
+            data: null
+            meta: null
+            error: ["FORBIDDEN"]
+
+    TooManyRequests:
+      description: Melebihi rate limit
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/MainResponse"
+          example:
+            status: false
+            message: TOO_MANY_REQUESTS
+            data: null
+            meta: null
+            error: ["TOO_MANY_REQUESTS"]
+
+    InternalServerError:
+      description: Kegagalan internal (detail disembunyikan, sudah di-log dengan tag di server)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/MainResponse"
+          example:
+            status: false
+            message: INTERNAL_SERVER_ERROR
+            data: null
+            meta: null
+            error: null
+
+security:
+  - AppKey: []

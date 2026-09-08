@@ -74,37 +74,11 @@ func (cache *Cache) Redis() (*CacheConnection, error) {
 }
 
 func (cache *Cache) Memcached() (*CacheConnection, error) {
-	var (
-		tag string = "internal.application.cache.main.Memcached."
-		key string = "ping"
-	)
-
 	mc := memcache.New(cache.Host + ":" + cache.Port)
 
-	err := mc.Set(&memcache.Item{Key: key, Value: []byte("pong")})
-	if err != nil {
+	if err := mc.Ping(); err != nil {
 		logrus.WithFields(logrus.Fields{
-			"tag":   tag + "01",
-			"error": err.Error(),
-		}).Error("failed to connect memcached")
-
-		return nil, err
-	}
-
-	_, err = mc.Get(key)
-	if err != nil {
-		logrus.WithFields(logrus.Fields{
-			"tag":   tag + "02",
-			"error": err.Error(),
-		}).Error("failed to connect memcached")
-
-		return nil, err
-	}
-
-	err = mc.Delete(key)
-	if err != nil {
-		logrus.WithFields(logrus.Fields{
-			"tag":   tag + "03",
+			"tag":   "internal.application.cache.main.Memcached.01",
 			"error": err.Error(),
 		}).Error("failed to connect memcached")
 

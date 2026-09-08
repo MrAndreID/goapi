@@ -1,13 +1,19 @@
 package application
 
 import (
+	"github.com/MrAndreID/goapi/v2/internal/feature/health"
 	"github.com/MrAndreID/goapi/v2/internal/feature/v1/user"
+	"github.com/MrAndreID/goapi/v2/internal/feature/version"
 
 	"github.com/MrAndreID/gomiddleware/v2"
 	"github.com/labstack/echo/v5"
 )
 
 func RegisterRoutes(e *echo.Echo, app *Application) {
+	health.NewHandler(e, HealthService)
+
+	version.NewHandler(e, VersionService)
+
 	api := e.Group("/api", gomiddleware.EchoCheckApplicationKey(app.Config.AppKey))
 
 	v1 := api.Group("/v1")

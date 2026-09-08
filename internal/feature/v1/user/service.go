@@ -2,7 +2,6 @@ package user
 
 import (
 	"context"
-	"errors"
 
 	"github.com/MrAndreID/goapi/v2/internal/entity"
 
@@ -40,7 +39,7 @@ func (s *Service) Create(ctx context.Context, req CreateData) (User, error) {
 					"error": "Duplicate Email",
 				}).Error("duplicate email")
 
-				return user, errors.New("DUPLICATE_EMAIL")
+				return user, ErrDuplicateEmail
 			}
 		}
 	}
@@ -91,7 +90,7 @@ func (s *Service) Update(ctx context.Context, req UpdateData) error {
 						"error": "Duplicate Email",
 					}).Error("duplicate email")
 
-					return errors.New("DUPLICATE_EMAIL")
+					return ErrDuplicateEmail
 				}
 			}
 		}

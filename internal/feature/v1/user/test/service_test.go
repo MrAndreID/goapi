@@ -145,8 +145,10 @@ func TestServiceDeleteDelegatesToRepository(t *testing.T) {
 }
 
 func TestServiceReadDelegatesToRepository(t *testing.T) {
+	total := int64(1)
+
 	repo := &stubRepository{readFunc: func(ctx context.Context, req ReadData) (entity.PaginatorResponse, error) {
-		return entity.PaginatorResponse{Total: 1}, nil
+		return entity.PaginatorResponse{Total: &total}, nil
 	}}
 	svc := newTestService(repo)
 
@@ -155,8 +157,8 @@ func TestServiceReadDelegatesToRepository(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if data.Total != 1 {
-		t.Fatalf("expected total 1, got %d", data.Total)
+	if data.Total == nil || *data.Total != 1 {
+		t.Fatalf("expected total 1, got %v", data.Total)
 	}
 }
 

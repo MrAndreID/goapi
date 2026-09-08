@@ -3,6 +3,7 @@ package messagebroker
 import (
 	"context"
 	"errors"
+	"net/url"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/segmentio/kafka-go"
@@ -62,7 +63,14 @@ func New(messageBroker *MessageBroker) (*MessageBrokerConnection, error) {
 func (messageBroker *MessageBroker) RabbitMQ() (*MessageBrokerConnection, error) {
 	var tag string = "internal.application.messagebroker.main.RabbitMQ."
 
-	rabbitMQConnection, err := amqp.Dial("amqp://" + messageBroker.Username + ":" + messageBroker.Password + "@" + messageBroker.Host + ":" + messageBroker.Port + "/")
+	amqpURL := url.URL{
+		Scheme: "amqp",
+		User:   url.UserPassword(messageBroker.Username, messageBroker.Password),
+		Host:   messageBroker.Host + ":" + messageBroker.Port,
+		Path:   "/",
+	}
+
+	rabbitMQConnection, err := amqp.Dial(amqpURL.String())
 
 	if err != nil {
 		logrus.WithFields(logrus.Fields{
@@ -110,22 +118,39 @@ func (messageBroker *MessageBroker) Kafka() (*MessageBrokerConnection, error) {
 }
 
 func (messageBrokerConnection *MessageBrokerConnection) Close() {
-	var err error
+	var tag string = "internal.application.messagebroker.main.Close."
 
 	switch messageBrokerConnection.Name {
 	case "rabbitmq":
-		messageBrokerConnection.RabbitMQ.Connection.Close()
-		messageBrokerConnection.RabbitMQ.Channel.Close()
-	case "kafka":
-		messageBrokerConnection.Kafka.Close()
-	default:
-		err = errors.New("Message Broker Connection Not Found")
-	}
+		if messageBrokerConnection.RabbitMQ == nil {
+			return
+		}
 
-	if err != nil {
-		logrus.WithFields(logrus.Fields{
-			"tag":   "internal.application.messagebroker.main.Close.01",
-			"error": err.Error(),
-		}).Error("failed to close connection (message broker)")
+		if messageBrokerConnection.RabbitMQ.Channel != nil {
+			if err := messageBrokerConnection.RabbitMQ.Channel.Close(); err != nil {
+				logrus.WithFields(logrus.Fields{
+					"tag":   tag + "01",
+					"error": err.Error(),
+				}).Error("failed to close rabbitmq channel")
+			}
+		}
+
+		if messageBrokerConnection.RabbitMQ.Connection != nil {
+			if err := messageBrokerConnection.RabbitMQ.Connection.Close(); err != nil {
+				logrus.WithFields(logrus.Fields{
+					"tag":   tag + "02",
+					"error": err.Error(),
+				}).Error("failed to close rabbitmq connection")
+			}
+		}
+	case "kafka":
+		if messageBrokerConnection.Kafka != nil {
+			if err := messageBrokerConnection.Kafka.Close(); err != nil {
+				logrus.WithFields(logrus.Fields{
+					"tag":   tag + "03",
+					"error": err.Error(),
+				}).Error("failed to close kafka connection")
+			}
+		}
 	}
 }

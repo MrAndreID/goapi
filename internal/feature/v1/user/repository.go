@@ -2,7 +2,6 @@ package user
 
 import (
 	"context"
-	"errors"
 	"strconv"
 	"time"
 
@@ -89,7 +88,7 @@ func (r *Repository) Create(ctx context.Context, req CreateData) (User, error) {
 
 		tx.Rollback()
 
-		return user, errors.New("FAILED_TO_CREATE_USER")
+		return user, ErrFailedToCreateUser
 	}
 
 	for _, v := range req.Emails {
@@ -135,7 +134,7 @@ func (r *Repository) Create(ctx context.Context, req CreateData) (User, error) {
 
 			tx.Rollback()
 
-			return user, errors.New("FAILED_TO_CREATE_EMAIL")
+			return user, ErrFailedToCreateEmail
 		}
 
 		user.Emails = append(user.Emails, email)
@@ -249,12 +248,15 @@ func (r *Repository) Read(ctx context.Context, req ReadData) (entity.PaginatorRe
 			return res, err
 		}
 
-		res.Total = total
+		res.Total = &total
 	}
 
-	if len(users) >= limit {
-		res.NextPage = true
+	if page <= 0 {
+		page = 1
 	}
+
+	res.Page = page
+	res.Limit = limit
 
 	return res, nil
 }
@@ -286,7 +288,7 @@ func (r *Repository) Update(ctx context.Context, req UpdateData) error {
 
 		tx.Rollback()
 
-		return errors.New("FAILED_TO_READ_USER_DATA")
+		return ErrFailedToReadUserData
 	}
 
 	if req.Name != "" {
@@ -315,7 +317,7 @@ func (r *Repository) Update(ctx context.Context, req UpdateData) error {
 
 			tx.Rollback()
 
-			return errors.New("FAILED_TO_DELETE_EMAIL_DATA")
+			return ErrFailedToDeleteEmailData
 		}
 
 		for _, v := range req.Emails {
@@ -361,7 +363,7 @@ func (r *Repository) Update(ctx context.Context, req UpdateData) error {
 
 				tx.Rollback()
 
-				return errors.New("FAILED_TO_CREATE_EMAIL")
+				return ErrFailedToCreateEmail
 			}
 
 			user.Emails = append(user.Emails, email)
@@ -371,15 +373,15 @@ func (r *Repository) Update(ctx context.Context, req UpdateData) error {
 
 		readEmail := tx.Find(&emails, "user_id = ?", user.ID)
 
-		if readEmail.RowsAffected == 0 {
+		if readEmail.Error != nil {
 			logrus.WithFields(logrus.Fields{
 				"tag":   tag + "08",
-				"error": "Failed to Read Email Data",
+				"error": readEmail.Error.Error(),
 			}).Error("failed to read email data")
 
 			tx.Rollback()
 
-			return errors.New("FAILED_TO_READ_EMAIL_DATA")
+			return readEmail.Error
 		}
 
 		user.Emails = emails
@@ -408,7 +410,7 @@ func (r *Repository) Update(ctx context.Context, req UpdateData) error {
 
 		tx.Rollback()
 
-		return errors.New("FAILED_TO_UPDATE_USER_DATA")
+		return ErrFailedToUpdateUserData
 	}
 
 	tx.Commit()
@@ -443,7 +445,7 @@ func (r *Repository) Delete(ctx context.Context, req DeleteData) error {
 
 		tx.Rollback()
 
-		return errors.New("FAILED_TO_READ_USER_DATA")
+		return ErrFailedToReadUserData
 	}
 
 	deleteUser := tx.Delete(&user, "id = ?", req.ID)
@@ -467,7 +469,7 @@ func (r *Repository) Delete(ctx context.Context, req DeleteData) error {
 
 		tx.Rollback()
 
-		return errors.New("FAILED_TO_DELETE_USER_DATA")
+		return ErrFailedToDeleteUserData
 	}
 
 	deleteEmail := tx.Where("user_id = ?", req.ID).Delete(&Email{})
@@ -491,7 +493,7 @@ func (r *Repository) Delete(ctx context.Context, req DeleteData) error {
 
 		tx.Rollback()
 
-		return errors.New("FAILED_TO_DELETE_EMAIL_DATA")
+		return ErrFailedToDeleteEmailData
 	}
 
 	tx.Commit()

@@ -13,9 +13,14 @@ import (
 	"gorm.io/gorm"
 )
 
-var tables map[string]any = map[string]any{
-	"users":  &user.User{},
-	"emails": &user.Email{},
+type table struct {
+	Name  string
+	Model any
+}
+
+var tables []table = []table{
+	{Name: "users", Model: &user.User{}},
+	{Name: "emails", Model: &user.Email{}},
 }
 
 func main() {
@@ -43,16 +48,17 @@ func main() {
 		return
 	} else {
 		dbConnection, err = database.New(&database.Database{
-			Connection: cfg.DatabaseConnection,
-			Host:       cfg.DatabaseHost,
-			Port:       cfg.DatabasePort,
-			Username:   cfg.DatabaseUsername,
-			Password:   cfg.DatabasePassword,
-			Name:       cfg.DatabaseName,
-			SSLMode:    cfg.DatabaseSSLMode,
-			ParseTime:  cfg.DatabaseParseTime,
-			Charset:    cfg.DatabaseCharset,
-			Timezone:   cfg.DatabaseTimezone,
+			Connection:     cfg.DatabaseConnection,
+			Host:           cfg.DatabaseHost,
+			Port:           cfg.DatabasePort,
+			Username:       cfg.DatabaseUsername,
+			Password:       cfg.DatabasePassword,
+			Name:           cfg.DatabaseName,
+			SSLMode:        cfg.DatabaseSSLMode,
+			ParseTime:      cfg.DatabaseParseTime,
+			Charset:        cfg.DatabaseCharset,
+			Timezone:       cfg.DatabaseTimezone,
+			ConnectTimeout: cfg.DatabaseConnectTimeout,
 		}, cfg.AppDebug)
 
 		if err != nil {
@@ -72,32 +78,21 @@ func main() {
 	if cast.ToString(migrateFlag) == "fresh" {
 		fmt.Println("Start Drop All Tables")
 
-		existingTables, err := dbConnection.Migrator().GetTables()
+		for i := len(tables) - 1; i >= 0; i-- {
+			fmt.Println("Dropping: " + tables[i].Name + " Table")
 
-		if err != nil {
-			logrus.WithFields(logrus.Fields{
-				"tag":   tag + "04",
-				"error": err.Error(),
-			}).Error("failed to get tables from database")
-
-			return
-		}
-
-		for _, v := range existingTables {
-			fmt.Println("Dropping: " + v + " Table")
-
-			err := dbConnection.Migrator().DropTable(v)
+			err := dbConnection.Migrator().DropTable(tables[i].Model)
 
 			if err != nil {
 				logrus.WithFields(logrus.Fields{
-					"tag":   tag + "05",
+					"tag":   tag + "04",
 					"error": err.Error(),
 				}).Error("failed to drop table")
 
 				return
 			}
 
-			fmt.Println("Dropped: " + v + " Table")
+			fmt.Println("Dropped: " + tables[i].Name + " Table")
 		}
 
 		fmt.Println("End Drop All Tables")
@@ -111,7 +106,7 @@ func main() {
 
 	if err != nil {
 		logrus.WithFields(logrus.Fields{
-			"tag":   tag + "06",
+			"tag":   tag + "05",
 			"error": err.Error(),
 		}).Error("failed to migrate")
 
@@ -122,10 +117,10 @@ func main() {
 }
 
 func Migrate(db *gorm.DB) error {
-	for i, v := range tables {
-		fmt.Println("Migrating: " + i + " Table")
+	for _, t := range tables {
+		fmt.Println("Migrating: " + t.Name + " Table")
 
-		err := db.Migrator().AutoMigrate(v)
+		err := db.Migrator().AutoMigrate(t.Model)
 
 		if err != nil {
 			logrus.WithFields(logrus.Fields{
@@ -136,7 +131,7 @@ func Migrate(db *gorm.DB) error {
 			return err
 		}
 
-		fmt.Println("Migrated: " + i + " Table")
+		fmt.Println("Migrated: " + t.Name + " Table")
 	}
 
 	return nil
