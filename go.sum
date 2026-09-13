@@ -1,11 +1,7 @@
 filippo.io/edwards25519 v1.2.0 h1:crnVqOiS4jqYleHd9vaKZ+HKtHfllngJIiOpNpoJsjo=
 filippo.io/edwards25519 v1.2.0/go.mod h1:xzAOLCNug/yB62zG1bQ8uziwrIqIuxhctzJT18Q77mc=
-github.com/MrAndreID/gohelpers v1.4.4 h1:pjM8vfIRT7v3EmFcpYQMGOFMxjMzO6TnqhVpSimrZd8=
-github.com/MrAndreID/gohelpers v1.4.4/go.mod h1:U4ApuIT/BLwUSaVVLiwv9Uq9mqhG4qtK4fdkHHXTwDo=
-github.com/MrAndreID/golog v1.1.6 h1:cpGD9uk+wvIPfi7EJElFk4nTIQH8Hwy7KD8KivFem4k=
-github.com/MrAndreID/golog v1.1.6/go.mod h1:yRBurH+Af1kxWJDFBHJc3tZ7CwspUQ4xby+mKfT8rTc=
-github.com/MrAndreID/gomiddleware/v2 v2.2.2 h1:JPFYiJNcgQ+389AxkEbFWCQci/mOkbeJAAeQTi47GP4=
-github.com/MrAndreID/gomiddleware/v2 v2.2.2/go.mod h1:8P9ei+YdJxnAEfMfl/3m4978ct3OBDopQY53paszF60=
+github.com/MrAndreID/gomiddleware/v2 v2.2.3 h1:yaSNO3/F970j0Nh8c0T0A0H3aAfRh1oupJGcLYfMcx4=
+github.com/MrAndreID/gomiddleware/v2 v2.2.3/go.mod h1:dML2dewscO6G9AuBSpDDryQktj60RWAE1/TJSfnX0gE=
 github.com/MrAndreID/gopackage/v2 v2.2.0 h1:qh2BhnQhivhILM51sbtrwiwn6jcwqoQ89HhCJkZgLM8=
 github.com/MrAndreID/gopackage/v2 v2.2.0/go.mod h1:FpoiIIUPlePt3/wQii96YNqO1t7xShVc2VO4yBYNZgU=
 github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d h1:Byv0BzEl3/e6D5CLfI0j/7hiIEtvGVFPCZ7Ei2oq8iQ=

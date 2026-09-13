@@ -3,7 +3,7 @@ module github.com/MrAndreID/goapi/v2
 go 1.27
 
 require (
-	github.com/MrAndreID/gomiddleware/v2 v2.2.2
+	github.com/MrAndreID/gomiddleware/v2 v2.2.3
 	github.com/MrAndreID/gopackage/v2 v2.2.0
 	github.com/bradfitz/gomemcache v0.0.0-20260422231931-4d751bb6e37c
 	github.com/caarlos0/env/v11 v11.4.1
@@ -27,8 +27,6 @@ require (
 
 require (
 	filippo.io/edwards25519 v1.2.0 // indirect
-	github.com/MrAndreID/gohelpers v1.4.4 // indirect
-	github.com/MrAndreID/golog v1.1.6 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
